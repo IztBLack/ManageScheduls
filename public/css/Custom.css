@@ -1,0 +1,7 @@
+.btn-custom {
+    height: calc(1.5em + .75rem + 2px); /* Ajuste personalizado para que coincida con la altura del input */
+    padding: .375rem .75rem; /* Asegura un buen espaciado interno */
+    font-size: 1rem; /* Asegura que el tamaño de la fuente sea consistente */
+    line-height: 1.5; /* Asegura que la altura de la línea sea consistente */
+    border-radius: .25rem; /* Coincide con el borde redondeado del input */
+}

@@ -60,11 +60,7 @@
                                             <i class="fa fa-edit"></i> Calificar
                                         </a>
 
-                                        <a href="<?php echo URLROOT; ?>/schedules/import/<?php echo $schedule->id; ?>" 
-                                           class="btn btn-info btn-sm" title="Importar Lista">
-                                            <i class="fa fa-users">Importar Alumnos 
-                                            </i>
-                                        </a>
+                
                                     </div>
                                 </td>
                             </tr>

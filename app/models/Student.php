@@ -125,22 +125,11 @@ public function saveBonus($inscripcion_id, $unidad_id, $puntos)
  */
 public function getStudentsInGroup($scheduleId)
 {
-    $this->db->query('
-        SELECT 
-            u.id AS user_id,
-            u.name,
-            i.id AS inscripcion_id
-        FROM 
-            users u
-        INNER JOIN 
-            inscripciones i ON u.id = i.user_id
-        WHERE 
-            i.schedule_id = :scheduleId
-        ORDER BY 
-            u.name ASC
-    ');
-    
-    $this->db->bind(':scheduleId', $scheduleId);
+    $this->db->query('SELECT u.id AS user_id, u.name, u.email, i.id AS inscripcion_id
+                      FROM inscripciones i
+                      JOIN users u ON i.user_id = u.id
+                      WHERE i.schedule_id = :schedule_id');
+    $this->db->bind(':schedule_id', $scheduleId);
     return $this->db->resultSet();
 }
     // En models/Student.php

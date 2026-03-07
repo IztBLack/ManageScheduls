@@ -226,5 +226,7 @@
         $this->view('profile/index', ['user' => $user]);
       }
     }
+
+    
   }
   ?>

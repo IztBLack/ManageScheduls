@@ -1,19 +1,58 @@
 <?php require APPROOT . '/views/inc/header.php'; ?>
-<div class="container mt-5">
+
+<style>
+    .unit-block {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        background-color: #f8f9fa;
+    }
+    .unit-title-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        gap: 10px;
+    }
+    .unit-name-input {
+        max-width: 350px;
+        flex: 1;
+    }
+</style>
+
+<div class="container mt-4 mb-5">
     <div class="card shadow">
         <div class="card-header bg-success text-white">
-            <h4><i class="fa fa-plus-circle"></i> Registrar Nuevo Grupo</h4>
+            <h4 class="mb-0"><i class="fas fa-plus-circle mr-2"></i>Registrar Nuevo Grupo</h4>
         </div>
         <div class="card-body">
-            <form action="<?php echo URLROOT; ?>/schedules/add" method="post">
+
+            <!-- MENSAJES INLINE -->
+            <?php if (!empty($data['error'])) : ?>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle mr-1"></i>
+                    <?php echo $data['error']; ?>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($data['warning'])) : ?>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    <?php echo $data['warning']; ?>
+                </div>
+            <?php endif; ?>
+
+            <form action="<?php echo URLROOT; ?>/schedules/add" method="post" id="addForm">
+
                 <div class="row">
                     <div class="col-md-6 form-group">
-                        <label>Materia:</label>
+                        <label>Materia <span class="text-danger">*</span></label>
                         <select name="subject_id" class="form-control" required>
                             <option value="">Seleccione una materia...</option>
                             <?php if (!empty($data['subjects'])) : ?>
-                                <?php foreach($data['subjects'] as $subject): ?>
-                                    <option value="<?php echo $subject->id; ?>" <?php echo (isset($data['subject_id']) && $data['subject_id'] == $subject->id) ? 'selected' : ''; ?>>
+                                <?php foreach ($data['subjects'] as $subject) : ?>
+                                    <option value="<?php echo $subject->id; ?>"
+                                        <?php echo (isset($data['subject_id']) && $data['subject_id'] == $subject->id) ? 'selected' : ''; ?>>
                                         <?php echo $subject->subject_name; ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -21,144 +60,194 @@
                         </select>
                     </div>
                     <div class="col-md-6 form-group">
-                        <label>Identificador del Grupo:</label>
-                        <input type="text" name="grupo" class="form-control" placeholder="Ej: 6BM" required value="<?php echo $data['grupo'] ?? ''; ?>">
+                        <label>Identificador del Grupo <span class="text-danger">*</span></label>
+                        <input type="text" name="grupo" class="form-control"
+                            placeholder="Ej: 6BM" required
+                            value="<?php echo $data['grupo'] ?? ''; ?>">
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-3 form-group">
-                        <label>Especialidad / Carrera:</label>
+                        <label>Especialidad / Carrera</label>
                         <select name="especialidad" class="form-control">
-                            <option value="sistemas" <?php echo (isset($data['especialidad']) && $data['especialidad']=='sistemas')?'selected':''; ?>>Sistemas Computacionales</option>
-                            <option value="industrial" <?php echo (isset($data['especialidad']) && $data['especialidad']=='industrial')?'selected':''; ?>>Ing. Industrial</option>
+                            <option value="sistemas" <?php echo (($data['especialidad'] ?? '') == 'sistemas') ? 'selected' : ''; ?>>Sistemas Computacionales</option>
+                            <option value="industrial" <?php echo (($data['especialidad'] ?? '') == 'industrial') ? 'selected' : ''; ?>>Ing. Industrial</option>
                         </select>
                     </div>
                     <div class="col-md-3 form-group">
-                        <label>Periodo Escolar:</label>
-                        <input type="text" name="periodo" class="form-control" value="<?php echo $data['periodo'] ?? 'AGO-DIC 2026'; ?>">
+                        <label>Periodo Escolar</label>
+                        <input type="text" name="periodo" class="form-control"
+                            value="<?php echo $data['periodo'] ?? 'AGO-DIC 2026'; ?>">
                     </div>
                     <div class="col-md-3 form-group">
-                        <label>Hora:</label>
-                        <input type="text" name="turno" class="form-control" placeholder="Ej: 07:00 - 09:00" value="<?php echo $data['turno'] ?? ''; ?>">
+                        <label>Hora</label>
+                        <input type="text" name="turno" class="form-control"
+                            placeholder="Ej: 07:00 - 09:00"
+                            value="<?php echo $data['turno'] ?? ''; ?>">
                     </div>
                     <div class="col-md-3 form-group">
-                        <label>Aula Sugerida:</label>
-                        <input type="text" name="salon" class="form-control" placeholder="Ej: Edificio A-10" value="<?php echo $data['aula'] ?? $data['salon'] ?? ''; ?>">
+                        <label>Aula</label>
+                        <input type="text" name="salon" class="form-control"
+                            placeholder="Ej: Edificio A-10"
+                            value="<?php echo $data['salon'] ?? $data['aula'] ?? ''; ?>">
                     </div>
                 </div>
 
                 <hr>
-                <h5>Estructura de evaluación</h5>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Estructura de Evaluación</h5>
+                    <button type="button" id="addUnit" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-plus mr-1"></i> Agregar Unidad
+                    </button>
+                </div>
+
                 <div id="unitsContainer">
-                    <div class="unit-block mb-4 border p-3 bg-light rounded" data-unit="1">
-                        <h6>Unidad 1</h6>
-                        <div class="activities">
-                            <div class="activity-row row mb-2" data-activity="1">
-                                <div class="col-md-5">
-                                    <input type="text" name="units[1][activities][1][name]" class="form-control" placeholder="Actividad evaluable">
-                                </div>
-                                <div class="col-md-3">
-                                    <input type="number" name="units[1][activities][1][weight]" class="form-control" placeholder="Peso (%)" min="1" max="100">
-                                </div>
-                                <div class="col-md-3">
-                                    <input type="date" name="units[1][activities][1][due_date]" class="form-control">
-                                </div>
-                                <div class="col-md-1">
-                                    <button type="button" class="btn btn-danger btn-sm remove-activity">&times;</button>
-                                </div>
-                            </div>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-secondary add-activity mb-2">
-                            <i class="fa fa-plus"></i> Agregar actividad
-                        </button>
+                    <div class="text-center text-muted py-4" id="emptyState">
+                        <i class="fas fa-layer-group fa-2x mb-2 d-block" style="color:#dee2e6;"></i>
+                        No hay unidades. Puedes agregar unidades ahora o configurarlas después desde la edición del grupo.
                     </div>
                 </div>
 
-                <button type="button" id="addUnit" class="btn btn-outline-primary mb-3">
-                    <i class="fa fa-layer-group"></i> Agregar unidad
-                </button>
-
-                <div class="alert alert-info border small">
-                    <i class="fa fa-info-circle"></i> Las ponderaciones de cada unidad deben sumar <strong>100%</strong> para evitar errores en el cálculo final.
+                <div class="alert alert-info small mt-2">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Las ponderaciones de cada unidad deben sumar <strong>100%</strong> para un cálculo correcto.
                 </div>
 
-                <button type="submit" class="btn btn-success btn-block btn-lg shadow">
-                    Crear Espacio de Trabajo
+                <button type="submit" class="btn btn-success btn-block btn-lg mt-3">
+                    <i class="fas fa-save mr-1"></i> Crear Espacio de Trabajo
                 </button>
 
-                <?php if($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-                <div class="mt-4 alert alert-secondary small">
-                    <h6><i class="fa fa-bug"></i> DEBUG DATA</h6>
-                    <pre><?php print_r($_POST); ?></pre>
-                </div>
-                <?php endif; ?>
             </form>
         </div>
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+
 <script>
-    (function() {
-        let unitCount = 1;
+(function () {
+    let unitCount = 0;
 
-        // Agregar Nueva Unidad
-        document.getElementById('addUnit').addEventListener('click', function() {
-            unitCount++;
-            const container = document.getElementById('unitsContainer');
-            const newUnit = container.querySelector('.unit-block').cloneNode(true);
-            
-            newUnit.setAttribute('data-unit', unitCount);
-            newUnit.querySelector('h6').textContent = 'Unidad ' + unitCount;
-            newUnit.querySelectorAll('input').forEach(i => i.value = '');
-            
-            // Limpiar actividades extra para que solo quede una al clonar
-            const activitiesDiv = newUnit.querySelector('.activities');
-            const rows = activitiesDiv.querySelectorAll('.activity-row');
-            for(let i = 1; i < rows.length; i++) rows[i].remove();
+    function activityRowHTML(unitIdx, actIdx) {
+        return `
+        <div class="activity-row row mb-2" data-activity="${actIdx}">
+            <div class="col-md-5">
+                <input type="text"
+                    name="units[${unitIdx}][activities][${actIdx}][name]"
+                    class="form-control form-control-sm"
+                    placeholder="Nombre de la actividad">
+            </div>
+            <div class="col-md-3">
+                <input type="number"
+                    name="units[${unitIdx}][activities][${actIdx}][weight]"
+                    class="form-control form-control-sm weight-input"
+                    placeholder="Peso (%)" min="0" max="100" value="0">
+            </div>
+            <div class="col-md-3">
+                <input type="date"
+                    name="units[${unitIdx}][activities][${actIdx}][due_date]"
+                    class="form-control form-control-sm">
+            </div>
+            <div class="col-md-1 d-flex align-items-center">
+                <button type="button" class="btn btn-danger btn-sm remove-activity">&times;</button>
+            </div>
+        </div>`;
+    }
 
-            // Actualizar nombres de inputs
-            newUnit.querySelectorAll('[name]').forEach(el => {
-                el.name = el.name.replace(/units\[\d+\]/, 'units[' + unitCount + ']');
-                el.name = el.name.replace(/activities\]\[\d+\]/, 'activities][1]');
-            });
-            
-            container.appendChild(newUnit);
+    function unitBlockHTML(unitIdx) {
+        return `
+        <div class="unit-block" data-unit="${unitIdx}">
+            <div class="unit-title-bar">
+                <div class="d-flex align-items-center flex-grow-1 mr-3">
+                    <i class="fas fa-layer-group text-primary mr-2"></i>
+                    <input type="text"
+                        name="units[${unitIdx}][unit_name]"
+                        class="form-control form-control-sm"
+                        placeholder="Nombre de la unidad (Ej: Unidad 1 - Introducción)">
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="badge badge-secondary weight-total mr-2">Total: 0%</span>
+                    <button type="button" class="btn btn-sm btn-outline-success add-activity mr-1">
+                        <i class="fas fa-plus"></i> Actividad
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-unit">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="activities">
+                ${activityRowHTML(unitIdx, 1)}
+            </div>
+        </div>`;
+    }
+
+    function updateWeightBadge(unitBlock) {
+        let total = 0;
+        unitBlock.querySelectorAll('.weight-input').forEach(i => {
+            total += parseInt(i.value) || 0;
         });
+        const badge = unitBlock.querySelector('.weight-total');
+        badge.textContent = `Total: ${total}%`;
+        badge.className   = 'badge mr-2 weight-total ' +
+            (total === 100 ? 'badge-success' : total > 100 ? 'badge-danger' : 'badge-secondary');
+    }
 
-        // Eventos Delegados para Actividades (Agregar/Eliminar)
-        document.getElementById('unitsContainer').addEventListener('click', function(e) {
-            // Agregar Actividad
-            if (e.target.classList.contains('add-activity') || e.target.closest('.add-activity')) {
-                const unitBlock = e.target.closest('.unit-block');
-                const unitIdx = unitBlock.getAttribute('data-unit');
-                const activitiesContainer = unitBlock.querySelector('.activities');
-                const currentRows = activitiesContainer.querySelectorAll('.activity-row');
-                
-                const newAct = currentRows[0].cloneNode(true);
-                const actIdx = currentRows.length + 1;
-                
-                newAct.setAttribute('data-activity', actIdx);
-                newAct.querySelectorAll('input').forEach(i => i.value = '');
-                
-                newAct.querySelectorAll('[name]').forEach(el => {
-                    el.name = el.name.replace(/units\[\d+\]/, 'units[' + unitIdx + ']');
-                    el.name = el.name.replace(/activities\]\[\d+\]/, 'activities][' + actIdx + ']');
-                });
-                
-                activitiesContainer.appendChild(newAct);
-            }
+    function toggleEmptyState() {
+        const hasUnits = document.querySelectorAll('.unit-block').length > 0;
+        document.getElementById('emptyState').style.display = hasUnits ? 'none' : 'block';
+    }
 
-            // Eliminar Actividad
-            if (e.target.classList.contains('remove-activity')) {
-                const row = e.target.closest('.activity-row');
-                const parent = row.parentNode;
-                if (parent.querySelectorAll('.activity-row').length > 1) {
-                    row.remove();
-                }
+    document.getElementById('addUnit').addEventListener('click', function () {
+        unitCount++;
+        const container = document.getElementById('unitsContainer');
+        const div = document.createElement('div');
+        div.innerHTML = unitBlockHTML(unitCount);
+        container.appendChild(div.firstElementChild);
+        toggleEmptyState();
+    });
+
+    document.getElementById('unitsContainer').addEventListener('click', function (e) {
+
+        if (e.target.closest('.add-activity')) {
+            const unitBlock = e.target.closest('.unit-block');
+            const unitIdx   = unitBlock.getAttribute('data-unit');
+            const actIdx    = unitBlock.querySelectorAll('.activity-row').length + 1;
+            const div = document.createElement('div');
+            div.innerHTML = activityRowHTML(unitIdx, actIdx);
+            unitBlock.querySelector('.activities').appendChild(div.firstElementChild);
+        }
+
+        if (e.target.classList.contains('remove-activity')) {
+            const row       = e.target.closest('.activity-row');
+            const unitBlock = row.closest('.unit-block');
+            if (unitBlock.querySelectorAll('.activity-row').length > 1) {
+                row.remove();
+                updateWeightBadge(unitBlock);
+            } else {
+                alert('Cada unidad debe tener al menos una actividad.');
             }
-        });
-    })();
+        }
+
+        if (e.target.closest('.remove-unit')) {
+            const unitBlock = e.target.closest('.unit-block');
+            if (confirm('¿Eliminar esta unidad y todas sus actividades?')) {
+                unitBlock.remove();
+                toggleEmptyState();
+            }
+        }
+    });
+
+    document.getElementById('unitsContainer').addEventListener('input', function (e) {
+        if (e.target.classList.contains('weight-input')) {
+            updateWeightBadge(e.target.closest('.unit-block'));
+        }
+    });
+
+    toggleEmptyState();
+})();
 </script>
 
 <?php require APPROOT . '/views/inc/footer.php'; ?>

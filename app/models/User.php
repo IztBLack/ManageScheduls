@@ -84,5 +84,22 @@ class User {
         $this->db->bind(':password', $hashed);
         return $this->db->execute();
     }
+
+    public function updateStudent($data)
+{
+    // Actualizar nombre y email (matricula@students.local)
+    $this->db->query('UPDATE users SET name = :name, email = :email WHERE id = :id');
+    $this->db->bind(':name',  $data['name']);
+    $this->db->bind(':email', $data['email']);
+    $this->db->bind(':id',    $data['user_id']);
+    return $this->db->execute();
+}
+
+    public function deleteStudent($id)
+    {
+        $this->db->query('DELETE FROM users WHERE id = :id');
+        $this->db->bind(':id', $id);
+        return $this->db->execute();
+    }
 }
 ?>

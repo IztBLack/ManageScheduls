@@ -59,6 +59,13 @@ class Schedules extends Controller
                 return;
             }
 
+            // Validar que el maestro no duplique el mismo grupo para la misma materia en el mismo periodo
+            if ($this->scheduleModel->groupExists($data['teacher_id'], $data['subject_id'], $data['grupo'], $data['periodo'])) {
+                $data['error'] = 'Ya existe un grupo registrado con esta materia, nombre y periodo.';
+                $this->view('schedules/add', $data);
+                return;
+            }
+
             if (!empty($data['units'])) {
                 foreach ($data['units'] as $index => $unit) {
                     $totalWeight  = 0;
@@ -149,9 +156,15 @@ class Schedules extends Controller
 
             case 'update_unit':
                 if (isset($_POST['unit_id'])) {
+                    $nombre = trim($_POST['nombre'] ?? '');
+                    if (empty($nombre)) {
+                        flash('edit_error', 'El nombre de la unidad no puede estar vacío', 'alert alert-danger');
+                        break;
+                    }
+
                     $unitData = [
                         'id'     => intval($_POST['unit_id']),
-                        'nombre' => trim($_POST['nombre']),
+                        'nombre' => $nombre,
                         'orden'  => intval($_POST['orden'] ?? 1)
                     ];
                     if ($this->scheduleModel->updateUnit($unitData)) {
@@ -175,9 +188,15 @@ class Schedules extends Controller
             // ── ACTIVIDADES ───────────────────────────────────
             case 'add_activity':
                 if (isset($_POST['unidad_id'])) {
+                    $nombre = trim($_POST['nombre'] ?? '');
+                    if (empty($nombre)) {
+                        flash('edit_error', 'El nombre de la actividad es obligatorio', 'alert alert-danger');
+                        break;
+                    }
+
                     $activityData = [
                         'unidad_id'    => intval($_POST['unidad_id']),
-                        'nombre'       => trim($_POST['nombre'] ?? 'Nueva Actividad'),
+                        'nombre'       => $nombre,
                         'ponderacion'  => intval($_POST['ponderacion'] ?? 0),
                         'fecha_entrega'=> !empty($_POST['fecha_entrega']) ? $_POST['fecha_entrega'] : null
                     ];
@@ -191,9 +210,15 @@ class Schedules extends Controller
 
             case 'update_activity':
                 if (isset($_POST['activity_id'])) {
+                    $nombre = trim($_POST['nombre'] ?? '');
+                    if (empty($nombre)) {
+                        flash('edit_error', 'El nombre de la actividad no puede estar vacío', 'alert alert-danger');
+                        break;
+                    }
+
                     $activityData = [
                         'id'           => intval($_POST['activity_id']),
-                        'nombre'       => trim($_POST['nombre']),
+                        'nombre'       => $nombre,
                         'ponderacion'  => intval($_POST['ponderacion'] ?? 0),
                         'fecha_entrega'=> !empty($_POST['fecha_entrega']) ? $_POST['fecha_entrega'] : null
                     ];
@@ -236,17 +261,22 @@ class Schedules extends Controller
             // ── ALUMNOS ───────────────────────────────────────
             case 'add_student':
                 if (isset($_POST['name'])) {
-                    $nombre     = trim($_POST['name']);
+                    $nombre     = trim($_POST['name'] ?? '');
                     $matricula  = trim($_POST['matricula'] ?? '');
                     $inputEmail = trim($_POST['email'] ?? '');
+
+                    if (empty($nombre)) {
+                        flash('edit_error', 'El nombre del alumno es obligatorio', 'alert alert-danger');
+                        break;
+                    }
 
                     // Si viene matrícula numérica, construir email; si no, usar el email directo
                     $emailFinal = ($matricula && ctype_digit($matricula))
                         ? $matricula . '@students.local'
                         : $inputEmail;
 
-                    if (empty($nombre) || empty($emailFinal)) {
-                        flash('edit_error', 'Nombre y matrícula (o email) son obligatorios', 'alert alert-danger');
+                    if (empty($emailFinal) || !filter_var($emailFinal, FILTER_VALIDATE_EMAIL)) {
+                        flash('edit_error', 'Se requiere una matrícula o un correo electrónico válido (ej: usuario@dominio.com)', 'alert alert-danger');
                         break;
                     }
 
@@ -667,6 +697,20 @@ class Schedules extends Controller
             ];
             
             $this->view('schedules/attendance', $data);
+        }
+    }
+
+    public function deleteAttendanceDate($schedule_id) {
+        if($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $fecha = trim($_POST['fecha']);
+            if($this->attendanceModel->deleteRecordsByDate($schedule_id, $fecha)) {
+                flash('attendance_message', 'Registros de asistencia eliminados para el ' . $fecha);
+            } else {
+                flash('attendance_error', 'Algo salió mal al eliminar los registros', 'alert alert-danger');
+            }
+            redirect('schedules/attendance/' . $schedule_id);
+        } else {
+            redirect('schedules/attendance/' . $schedule_id);
         }
     }
 

@@ -81,5 +81,19 @@ class Attendance {
         }
         return $records;
     }
+
+    // ===================================
+    // Eliminar pases de lista por fecha
+    // ===================================
+    public function deleteRecordsByDate($schedule_id, $fecha) {
+        $this->db->query('DELETE a FROM asistencias a 
+                          INNER JOIN inscripciones i ON a.inscripcion_id = i.id 
+                          WHERE i.schedule_id = :schedule_id AND a.fecha = :fecha');
+        
+        $this->db->bind(':schedule_id', $schedule_id);
+        $this->db->bind(':fecha', $fecha);
+
+        return $this->db->execute();
+    }
 }
 ?>

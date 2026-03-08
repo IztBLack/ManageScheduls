@@ -26,7 +26,9 @@
       // Check if POST
       if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Sanitize POST
-        $_POST  = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
+        $_POST = array_map(function($value) {
+            return is_string($value) ? htmlspecialchars(trim($value), ENT_QUOTES, 'UTF-8') : $value;
+        }, $_POST);
 
         $data = [
           'name' => trim($_POST['name']),
@@ -117,7 +119,9 @@
       // Check if POST
       if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Sanitize POST
-        $_POST  = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
+        $_POST = array_map(function($value) {
+            return is_string($value) ? htmlspecialchars(trim($value), ENT_QUOTES, 'UTF-8') : $value;
+        }, $_POST);
 
         $data = [
           'email' => trim($_POST['email']),

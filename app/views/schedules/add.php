@@ -1,6 +1,8 @@
 <?php require APPROOT . '/views/inc/header.php'; ?>
 
 <style>
+    .config-card { border: none; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15); }
+    .config-header { background: linear-gradient(135deg, #343a40 0%, #23272b 100%); border-bottom: 3px solid #ffc107; text-align: left; }
     .unit-block {
         border: 1px solid #dee2e6;
         border-radius: 8px;
@@ -22,9 +24,13 @@
 </style>
 
 <div class="container mt-4 mb-5">
-    <div class="card shadow">
-        <div class="card-header bg-success text-white">
-            <h4 class="mb-0"><i class="fas fa-plus-circle mr-2"></i>Registrar Nuevo Grupo</h4>
+    <div class="card config-card">
+        <!-- HEADER ESTILO CONFIGURACIÓN -->
+        <div class="card-header config-header text-white d-flex justify-content-between align-items-center py-3 flex-wrap">
+            <div>
+                <h3 class="mb-1"><i class="fas fa-plus-circle mr-2"></i>Registrar Nuevo Grupo</h3>
+               
+            </div>
         </div>
         <div class="card-body">
 
@@ -115,12 +121,23 @@
                     Las ponderaciones de cada unidad deben sumar <strong>100%</strong> para un cálculo correcto.
                 </div>
 
-                <button type="submit" class="btn btn-success btn-block btn-lg mt-3">
+                <button type="submit" class="btn btn-success btn-block btn-lg mt-3 shadow-sm">
                     <i class="fas fa-save mr-1"></i> Crear Espacio de Trabajo
                 </button>
 
             </form>
         </div>
+
+        <!-- FOOTER -->
+        <div class="card-footer bg-light p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted"><i class="fas fa-info-circle mr-1"></i> Completa los datos para crear un nuevo tablero de alumnos y calificaciones.</small>
+                <a href="<?php echo URLROOT; ?>/schedules" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-arrow-left mr-1"></i> Volver a Mis Grupos
+                </a>
+            </div>
+        </div>
+
     </div>
 </div>
 

@@ -6,6 +6,21 @@ class Schedule {
         $this->db = new Database;
     }
 
+    public function groupExists($teacher_id, $subject_id, $grupo, $periodo) {
+        $this->db->query('SELECT id FROM schedules 
+                          WHERE teacher_id = :tid 
+                          AND subject_id = :sid 
+                          AND grupo = :grp 
+                          AND periodo = :per');
+        $this->db->bind(':tid', $teacher_id);
+        $this->db->bind(':sid', $subject_id);
+        $this->db->bind(':grp', $grupo);
+        $this->db->bind(':per', $periodo);
+        
+        $row = $this->db->single();
+        return ($row) ? true : false;
+    }
+
     public function addFullStructure($data) {
         try {
             $this->db->beginTransaction();

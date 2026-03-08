@@ -144,26 +144,61 @@ foreach ($data['activities'] as $a) {
 $totalUnidades = count($data['unidades']);
 ?>
 
-<div class="container-fluid mt-3">
+<style>
+    .config-card { border: none; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15); }
+    .config-header { background: linear-gradient(135deg, #343a40 0%, #23272b 100%); border-bottom: 3px solid #ffc107; }
+</style>
+
+<div class="container-fluid mt-4">
     <form action="<?php echo URLROOT; ?>/schedules/grades/<?php echo $data['schedule']->id; ?>" method="post">
 
-        <div class="card shadow border-0">
-
-            <!-- HEADER -->
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
+        <div class="card config-card mb-5">
+            <!-- HEADER ESTILO CONFIGURACIÓN -->
+            <div class="card-header config-header text-white d-flex justify-content-between align-items-center py-3 flex-wrap">
                 <div>
-                    <h5 class="mb-0">
-                        Captura de Calificaciones:
-                        <small>
-                            <?php echo $data['schedule']->subject_name; ?>
-                            | Grupo <?php echo $data['schedule']->grupo; ?>
-                        </small>
-                    </h5>
+                    <h3 class="mb-1"><i class="fas fa-edit mr-2"></i>Captura de Calificaciones</h3>
+                    <div class="d-flex align-items-center mt-2 mt-md-0">
+                        <span class="badge badge-light mr-2"><i class="fas fa-book mr-1"></i><?php echo $data['schedule']->subject_name; ?></span>
+                        <span class="badge badge-warning mr-2"><i class="fas fa-users mr-1"></i>Grupo <?php echo $data['schedule']->grupo; ?></span>
+                    </div>
                 </div>
-                <div>
-                    <span class="badge badge-warning p-2">
-                        Suma de Pesos: <?php echo $totalPesos; ?>%
+                
+                <div class="mt-2 mt-md-0">
+                    <span class="badge badge-info p-2" style="font-size: 0.9rem;">
+                        <i class="fas fa-weight-hanging mr-1"></i> Suma de Pesos: <?php echo $totalPesos; ?>%
                     </span>
+                </div>
+            </div>
+
+            <!-- Barra de búsqueda y filtros -->
+            <div class="bg-light p-3 border-bottom d-flex align-items-center flex-wrap" style="gap:10px;">
+                <div class="input-group input-group-sm flex-grow-1" style="max-width:320px;">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text bg-white border-right-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                    </div>
+                    <input type="text" id="alumnoSearch"
+                        class="form-control border-left-0"
+                        placeholder="Buscar alumno..."
+                        oninput="filtrarYOrdenar()">
+                </div>
+                <div class="btn-group btn-group-sm" id="sortBtns" role="group">
+                    <button type="button" class="btn btn-outline-secondary sort-btn active"
+                        data-sort="default" onclick="cambiarOrden(this, 'default')"
+                        title="Orden original">
+                        <i class="fas fa-list"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary sort-btn"
+                        data-sort="asc" onclick="cambiarOrden(this, 'asc')"
+                        title="A → Z">
+                        A<i class="fas fa-arrow-down ml-1" style="font-size:0.7rem;"></i>Z
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary sort-btn"
+                        data-sort="desc" onclick="cambiarOrden(this, 'desc')"
+                        title="Z → A">
+                        Z<i class="fas fa-arrow-up ml-1" style="font-size:0.7rem;"></i>A
+                    </button>
                 </div>
             </div>
 
@@ -211,9 +246,9 @@ $totalUnidades = count($data['unidades']);
                     </thead>
 
                     <tbody>
-                        <?php foreach ($data['students'] as $stu): ?>
-                            <tr>
-                                <td class="align-middle font-weight-bold text-left">
+                        <?php foreach ($data['students'] as $index => $stu): ?>
+                            <tr class="student-item" data-index="<?php echo $index; ?>" data-name="<?php echo strtolower(htmlspecialchars($stu->name)); ?>">
+                                <td class="align-middle font-weight-bold text-left index-col">
                                     <?php echo $stu->name; ?>
                                 </td>
 
@@ -270,38 +305,81 @@ $totalUnidades = count($data['unidades']);
 
                 </table>
             </div>
-
             <!-- FOOTER -->
-            <div class="card-footer bg-light">
+            <div class="card-footer bg-light p-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <small class="text-muted">
                         <i class="fas fa-info-circle mr-1"></i>Última modificación: <?php echo date('d/m/Y'); ?>
                     </small>
                     <div>
                         <?php if ($data['editMode']): ?>
-                            <button type="submit" class="btn btn-success btn-sm mr-2">
-                                <i class="fas fa-save mr-1"></i>Guardar
-                            </button>
-                            <a href="<?php echo URLROOT; ?>/schedules/grades/<?php echo $data['schedule']->id; ?>" class="btn btn-secondary btn-sm mr-2">
+                            <a href="<?php echo URLROOT; ?>/schedules/grades/<?php echo $data['schedule']->id; ?>" class="btn btn-secondary mr-2">
                                 <i class="fas fa-times mr-1"></i>Cancelar
                             </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save mr-1"></i>Guardar Cambios
+                            </button>
                         <?php else: ?>
-                            <a href="<?php echo URLROOT; ?>/schedules/grades/<?php echo $data['schedule']->id; ?>?edit=1" class="btn btn-warning btn-sm mr-2">
-                                <i class="fas fa-edit mr-1"></i> Modificar
+                            <a href="<?php echo URLROOT; ?>/schedules/grades/<?php echo $data['schedule']->id; ?>?edit=1" class="btn btn-warning mr-2 text-dark font-weight-bold">
+                                <i class="fas fa-edit mr-1"></i> Modo Edición
+                            </a>
+                            <a href="<?php echo URLROOT; ?>/schedules/index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left mr-1"></i> Volver a Mis Grupos
                             </a>
                         <?php endif; ?>
-                        <a href="<?php echo URLROOT; ?>/schedules/index" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-arrow-left mr-1"></i> Volver
-                        </a>
                     </div>
                 </div>
             </div>
-
         </div>
     </form>
 </div>
 
 <script>
+    // --- FILTRO Y ORDENAMIENTO DE ALUMNOS ---
+    let sortOrder = 'default';
+
+    function cambiarOrden(btn, orden) {
+        sortOrder = orden;
+        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filtrarYOrdenar();
+    }
+
+    function filtrarYOrdenar() {
+        const query = (document.getElementById('alumnoSearch') ? document.getElementById('alumnoSearch').value : '').toLowerCase().trim();
+        const tbody = document.querySelector('table tbody');
+        if (!tbody) return;
+        
+        // Convertir Nodelist a un array para manipular
+        const items = Array.from(tbody.querySelectorAll('tr.student-item'));
+        if (items.length === 0) return;
+
+        // 1. Filtrar visibilidad
+        items.forEach(item => {
+            const nombre = item.dataset.name || '';
+            if (!query || nombre.includes(query)) {
+                item.style.display = ''; // Mostrar
+            } else {
+                item.style.display = 'none'; // Ocultar
+            }
+        });
+
+        // 2. Ordenar Nodos HTML
+        const visiblesYListos = [...items]; 
+        if (sortOrder === 'asc') {
+            visiblesYListos.sort((a, b) => (a.dataset.name).localeCompare(b.dataset.name, 'es'));
+        } else if (sortOrder === 'desc') {
+            visiblesYListos.sort((a, b) => (b.dataset.name).localeCompare(a.dataset.name, 'es'));
+        } else {
+            // default: restaurar orden original por su atributo data-index original
+            visiblesYListos.sort((a, b) => parseInt(a.dataset.index) - parseInt(b.dataset.index));
+        }
+
+        // Volver a insertar en el DOM en el orden correcto
+        visiblesYListos.forEach(item => tbody.appendChild(item));
+    }
+
+    // --- CÁLCULO DE CALIFICACIONES ---
     document.addEventListener("input", function(e) {
         if (e.target.classList.contains("nota") ||
             e.target.classList.contains("bonus-unidad")) {

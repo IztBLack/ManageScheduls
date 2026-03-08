@@ -95,6 +95,14 @@ class User {
     return $this->db->execute();
 }
 
+    // Update password and clear must_change_password flag
+    public function updatePassword($id, $new_password) {
+        $this->db->query('UPDATE users SET password = :password, must_change_password = 0 WHERE id = :id');
+        $this->db->bind(':password', password_hash($new_password, PASSWORD_DEFAULT));
+        $this->db->bind(':id', $id);
+        return $this->db->execute();
+    }
+
     public function deleteStudent($id)
     {
         $this->db->query('DELETE FROM users WHERE id = :id');

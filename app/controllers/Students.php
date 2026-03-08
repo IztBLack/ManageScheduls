@@ -5,6 +5,11 @@ class Students extends Controller {
     private $scheduleModel;
 
     public function __construct(){
+        // Protect all methods in this controller
+        if (isset($_SESSION['must_change_password']) && $_SESSION['must_change_password'] === true) {
+            redirect('users/change_password');
+        }
+
         $this->studentModel = $this->model('Student');
         $this->scheduleModel = $this->model('Schedule');
     }
@@ -16,6 +21,36 @@ class Students extends Controller {
         $grades = $this->studentModel->getMyGrades($_SESSION['user_id']);
         $data = ['grades' => $grades];
         $this->view('students/grades', $data);
+    }
+
+    // Vista del Alumno: Reporte de Calificaciones
+    public function report($schedule_id){
+        if($_SESSION['user_role'] != 'alumno') redirect('pages/index');
+        
+        $inscripcion = $this->studentModel->getInscripcion($_SESSION['user_id'], $schedule_id);
+        
+        if(!$inscripcion) {
+            flash('error', 'No estás inscrito en este grupo');
+            redirect('students/index');
+            return;
+        }
+
+        $schedule = $this->scheduleModel->getScheduleById($schedule_id);
+        $unidades = $this->scheduleModel->getUnitsWithActivities($schedule_id);
+        
+        // Cargar calificaciones y bonus
+        $grades = $this->studentModel->getGradesBySchedule($schedule_id);
+        $bonus = $this->studentModel->getBonusBySchedule($schedule_id);
+
+        $data = [
+            'schedule' => $schedule,
+            'unidades' => $unidades,
+            'inscripcion_id' => $inscripcion->id,
+            'grades' => $grades,
+            'bonus' => $bonus
+        ];
+
+        $this->view('students/report', $data);
     }
 
     // Vista del Maestro: Captura de Notas

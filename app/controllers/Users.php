@@ -186,6 +186,12 @@
         $_SESSION['user_name'] = $user->name;
         $_SESSION['user_role'] = $user->rol; // Almacenamos el rol (maestro/alumno)
         $_SESSION['is_logged_in'] = true;
+        $_SESSION['must_change_password'] = (bool)$user->must_change_password;
+
+        if ($_SESSION['must_change_password']) {
+            redirect('users/change_password');
+            return;
+        }
 
         // Redirección basada en el rol
         if($user->rol == 'maestro'){
@@ -225,6 +231,79 @@
         // Load the profile view and pass the user's data
         $this->view('profile/index', ['user' => $user]);
       }
+    }
+
+    public function change_password() {
+        if (!$this->isLoggedIn()) {
+            redirect('users/login');
+        }
+
+        // Si no necesita cambiar, lo mandamos a su inicio normal
+        if (empty($_SESSION['must_change_password'])) {
+            if($_SESSION['user_role'] == 'maestro'){
+                redirect('schedules/index');
+            } else {
+                redirect('students/index');
+            }
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
+
+            $data = [
+                'password' => trim($_POST['password']),
+                'confirm_password' => trim($_POST['confirm_password']),
+                'password_err' => '',
+                'confirm_password_err' => ''
+            ];
+
+            if (empty($data['password'])) {
+                $data['password_err'] = 'Por favor ingresa una contraseña nueva.';
+            } elseif (strlen($data['password']) < 6) {
+                $data['password_err'] = 'La contraseña debe tener al menos 6 caracteres.';
+            }
+
+            if (empty($data['confirm_password'])) {
+                $data['confirm_password_err'] = 'Por favor confirma la contraseña.';
+            } else {
+                if ($data['password'] != $data['confirm_password']) {
+                    $data['confirm_password_err'] = 'Las contraseñas no coinciden.';
+                }
+            }
+
+            // Validar que no sea la misma que la por defecto (matricula/email) - Opcional, pero recomendado
+            $currentUser = $this->userModel->getUserById($_SESSION['user_id']);
+            if (password_verify($data['password'], $currentUser->password)) {
+                $data['password_err'] = 'Debes usar una contraseña diferente a la actual.';
+            }
+
+            if (empty($data['password_err']) && empty($data['confirm_password_err'])) {
+                // Actualizar password
+                if ($this->userModel->updatePassword($_SESSION['user_id'], $data['password'])) {
+                    // Limpiar flag
+                    $_SESSION['must_change_password'] = false;
+                    flash('register_success', 'Contraseña actualizada correctamente. Bienvenido.');
+                    
+                    if($_SESSION['user_role'] == 'maestro'){
+                        redirect('schedules/index');
+                    } else {
+                        redirect('students/index');
+                    }
+                } else {
+                    die('Algo salió mal al actualizar la contraseña');
+                }
+            } else {
+                $this->view('users/change_password', $data);
+            }
+        } else {
+            $data = [
+                'password' => '',
+                'confirm_password' => '',
+                'password_err' => '',
+                'confirm_password_err' => ''
+            ];
+            $this->view('users/change_password', $data);
+        }
     }
 
     

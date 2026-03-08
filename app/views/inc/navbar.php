@@ -5,13 +5,7 @@
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav mr-auto">
-        <?php if (isset($_SESSION['is_logged_in'])) : ?>
-           <li class="nav-item active">
-            <a class="nav-link" href="<?php echo URLROOT; ?>/schedules/">Manage Grupos</a>
-          </li>
-        <?php endif; ?>
-      </ul>
+      
       <ul class="navbar-nav ml-auto">
         <?php if (isset($_SESSION['user_id'])) : ?>
           <li class="nav-item">

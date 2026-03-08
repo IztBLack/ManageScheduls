@@ -1,45 +1,38 @@
 <?php require APPROOT . '/views/inc/header.php'; ?>
-<div class="container-fluid mt-5">
-    <form action="<?php echo URLROOT; ?>/schedules/grades/<?php echo $data['schedule']->id; ?>" method="post">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">Registro de Resultados - Unidad: <?php echo $data['current_unit']->nombre; ?></h4>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-bordered mb-0">
-                    <thead class="thead-light text-center">
-                        <tr>
-                            <th class="align-middle">Alumno</th>
-                            <?php foreach($data['actividades'] as $act) : ?>
-                                <th><?php echo $act->nombre; ?> (<?php echo $act->ponderacion; ?>%)</th>
-                            <?php endforeach; ?>
-                            <th class="align-middle text-info">Bonus</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach($data['alumnos'] as $alumno) : ?>
-                        <tr>
-                            <td class="align-middle"><?php echo $alumno->name; ?></td>
-                            <?php foreach($data['actividades'] as $act) : ?>
-                                <td>
-                                    <input type="number" 
-                                           name="calif[<?php echo $alumno->id; ?>][<?php echo $act->id; ?>]" 
-                                           class="form-control text-center" 
-                                           min="0" max="100" step="0.1" required>
-                                </td>
-                            <?php endforeach; ?>
-                            <td>
-                                <input type="number" name="bonus[<?php echo $alumno->id; ?>]" class="form-control text-center" value="0" min="0" max="10">
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-            <div class="card-footer text-right">
-                <button type="submit" class="btn btn-success btn-lg">Guardar y Calcular Promedios</button>
-            </div>
+<div class="container mt-5">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h2>Mis Calificaciones</h2>
         </div>
-    </form>
+    </div>
+    
+    <div class="row">
+        <?php foreach($data['grades'] as $grupo) : ?>
+            <div class="col-md-4 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><?php echo htmlspecialchars($grupo->subject_name); ?></h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">
+                            <strong>Grupo:</strong> <?php echo htmlspecialchars($grupo->grupo); ?><br>
+                            <strong>Docente:</strong> <?php echo htmlspecialchars($grupo->teacher_name); ?><br>
+                            <strong>Periodo:</strong> <?php echo htmlspecialchars($grupo->periodo); ?><br>
+                            <strong>Turno:</strong> <?php echo htmlspecialchars($grupo->turno); ?>
+                        </p>
+                    </div>
+                    <div class="card-footer bg-white border-top-0">
+                        <a href="<?php echo URLROOT; ?>/students/report/<?php echo $grupo->id; ?>" class="btn btn-outline-primary btn-block">Ver Reporte</a>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+        
+        <?php if(empty($data['grades'])) : ?>
+            <div class="col-12">
+                <div class="alert alert-info">No estás inscrito en ningún grupo actualmente.</div>
+            </div>
+        <?php endif; ?>
+    </div>
 </div>
 <?php require APPROOT . '/views/inc/footer.php'; ?>

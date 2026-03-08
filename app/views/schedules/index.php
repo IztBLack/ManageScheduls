@@ -55,6 +55,11 @@
                                             <i class="fa fa-cog"></i> Configurar
                                         </a>
 
+                                        <a href="<?php echo URLROOT; ?>/schedules/attendance/<?php echo $schedule->id; ?>" 
+                                           class="btn btn-info btn-sm" title="Pase de Lista">
+                                            <i class="fa fa-list"></i> Asistencia
+                                        </a>
+
                                         <a href="<?php echo URLROOT; ?>/schedules/grades/<?php echo $schedule->id; ?>" 
                                            class="btn btn-primary btn-sm" title="Capturar Calificaciones">
                                             <i class="fa fa-edit"></i> Calificar

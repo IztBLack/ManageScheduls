@@ -9,9 +9,15 @@ class Schedules extends Controller
 
     public function __construct()
     {
+        // Protect all methods in this controller
+        if (isset($_SESSION['must_change_password']) && $_SESSION['must_change_password'] === true) {
+            redirect('users/change_password');
+        }
+
         $this->scheduleModel = $this->model('Schedule');
         $this->studentModel  = $this->model('Student');
         $this->userModel     = $this->model('User');
+        $this->attendanceModel = $this->model('Attendance');
     }
 
     // =========================================================
@@ -613,6 +619,55 @@ class Schedules extends Controller
     {
         $schedule = $this->scheduleModel->getScheduleById($id);
         $schedule ? $this->generatePDF($schedule) : redirect('schedules/index');
+    }
+
+    // =========================================================
+    // PASE DE LISTA
+    // =========================================================
+    public function attendance($schedule_id) {
+        $fecha = isset($_GET['fecha']) ? $_GET['fecha'] : date('Y-m-d');
+        
+        $schedule = $this->scheduleModel->getScheduleById($schedule_id);
+
+        if (!$schedule) {
+            redirect('schedules/index');
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
+            $fecha_post = $_POST['fecha'];
+            
+            if(isset($_POST['attendance'])) {
+                foreach($_POST['attendance'] as $inscripcion_id => $estado) {
+                    $this->attendanceModel->saveAttendance($inscripcion_id, $fecha_post, $estado);
+                }
+                flash('attendance_message', 'Lista de asistencia guardada correctamente para el ' . $fecha_post);
+            }
+            
+            redirect('schedules/attendance/' . $schedule_id . '?fecha=' . $fecha_post);
+        } else {
+            $students = $this->attendanceModel->getStudentsForAttendance($schedule_id);
+            $attendance_data = $this->attendanceModel->getAttendanceByDate($schedule_id, $fecha);
+            
+            // Nuevos datos para el historial
+            $all_dates = $this->attendanceModel->getAttendanceDates($schedule_id);
+            $all_records = $this->attendanceModel->getAllAttendanceRecords($schedule_id);
+            
+            // Modo edición
+            $editMode = isset($_GET['edit']) ? true : false;
+            
+            $data = [
+                'schedule' => $schedule,
+                'fecha' => $fecha,
+                'students' => $students,
+                'attendance_data' => $attendance_data,
+                'all_dates' => $all_dates,
+                'all_records' => $all_records,
+                'editMode' => $editMode
+            ];
+            
+            $this->view('schedules/attendance', $data);
+        }
     }
 
     private function generatePDF($schedule)

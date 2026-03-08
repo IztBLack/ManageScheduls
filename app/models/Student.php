@@ -6,6 +6,19 @@
       $this->db = new Database;
     }
 
+    public function getMyGrades($user_id){
+        $this->db->query('
+            SELECT s.*, sub.subject_name as subject_name, u.name as teacher_name, i.id as inscripcion_id
+            FROM inscripciones i
+            JOIN schedules s ON i.schedule_id = s.id
+            JOIN subjects sub ON s.subject_id = sub.id
+            JOIN users u ON s.teacher_id = u.id
+            WHERE i.user_id = :uid
+        ');
+        $this->db->bind(':uid', $user_id);
+        return $this->db->resultSet();
+    }
+
     // Inscribir alumno (Importación masiva)
     public function registerInGroup($schedule_id, $user_id){
       $this->db->query('INSERT IGNORE INTO inscripciones (schedule_id, user_id) VALUES(:sid, :uid)');

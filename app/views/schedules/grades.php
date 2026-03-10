@@ -63,8 +63,8 @@ $totalUnidades = count($data['unidades']);
             </div>
 
             <!-- TABLA -->
-            <div class="table-responsive-custom">
-                <table class="grades-table table-bordered mb-0">
+            <div class="table-attendance-responsive">
+                <table class="table table-hover table-bordered grades-table mb-0 text-center" style="font-size: 0.95rem;">
 
                     <thead class="thead-light">
                         <tr>

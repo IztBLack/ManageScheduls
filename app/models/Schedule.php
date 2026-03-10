@@ -130,6 +130,17 @@ class Schedule {
         return $this->db->resultSet();
     }
 
+    public function getEspecialidadesByTeacher($teacher_id) {
+        $this->db->query("SELECT DISTINCT especialidad FROM schedules WHERE teacher_id = :tid AND especialidad IS NOT NULL AND especialidad != ''");
+        $this->db->bind(':tid', $teacher_id);
+        $results = $this->db->resultSet();
+        $especialidades = [];
+        foreach($results as $row) {
+            $especialidades[] = $row->especialidad;
+        }
+        return $especialidades;
+    }
+
     public function getUnitsBySchedule($scheduleId)
     {
         $this->db->query('SELECT * FROM unidades WHERE schedule_id = :scheduleId ORDER BY orden ASC');

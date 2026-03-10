@@ -49,6 +49,7 @@ class Schedules extends Controller
                 'periodo'      => $sanitize($_POST['periodo']       ?? ''),
                 'especialidad' => $sanitize($_POST['especialidad']  ?? ''),
                 'subjects'     => $this->scheduleModel->getSubjects($_SESSION['user_id']),
+                'especialidades_existentes' => $this->scheduleModel->getEspecialidadesByTeacher($_SESSION['user_id']),
                 'error'        => '',
                 'warning'      => '',
             ];
@@ -83,6 +84,7 @@ class Schedules extends Controller
         } else {
             $data = [
                 'subjects' => $this->scheduleModel->getSubjects($_SESSION['user_id']),
+                'especialidades_existentes' => $this->scheduleModel->getEspecialidadesByTeacher($_SESSION['user_id']),
                 'error'    => '',
                 'warning'  => '',
             ];
@@ -682,24 +684,36 @@ class Schedules extends Controller
 
         if (!$schedule) {
             redirect('schedules/index');
+            return;
         }
 
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $fecha_post = htmlspecialchars(trim($_POST['fecha'] ?? date('Y-m-d')), ENT_QUOTES, 'UTF-8');
+            $allowedStatus = ['Presente', 'Falta', 'Retardo', 'Justificado'];
             
-            if(isset($_POST['attendance']) && is_array($_POST['attendance'])) {
-                $allowedStatus = ['Presente', 'Falta', 'Retardo', 'Justificado'];
-                
-                foreach($_POST['attendance'] as $inscripcion_id => $estado) {
-                    $est = trim($estado);
-                    if(in_array($est, $allowedStatus)) {
-                        $this->attendanceModel->saveAttendance(intval($inscripcion_id), $fecha_post, $est);
-                    }
+            // 1. Obtener a TODOS los alumnos del grupo
+            $students = $this->attendanceModel->getStudentsForAttendance($schedule_id);
+            
+            // 2. Extraer lo que el usuario envió realmente
+            $posted_attendance = $_POST['attendance'] ?? [];
+            
+            // 3. Iterar cada alumno para garantizar que todos tienen registro
+            foreach($students as $student) {
+                // Si el alumno viene en el POST y tiene un estado válido, lo usamos
+                if(isset($posted_attendance[$student->inscripcion_id]) && in_array(trim($posted_attendance[$student->inscripcion_id]), $allowedStatus)) {
+                    $estado = trim($posted_attendance[$student->inscripcion_id]);
+                } else {
+                    // FALLBACK: Si no viene en el POST (no fue marcado), se asigna 'Falta'
+                    $estado = 'Falta';
                 }
-                flash('attendance_message', 'Lista de asistencia guardada correctamente para el ' . $fecha_post);
+                
+                $this->attendanceModel->saveAttendance(intval($student->inscripcion_id), $fecha_post, $estado);
             }
             
+            flash('attendance_message', 'Lista de asistencia guardada correctamente para el ' . $fecha_post);
             redirect('schedules/attendance/' . $schedule_id . '?fecha=' . $fecha_post);
+            return;
+            
         } else {
             $students = $this->attendanceModel->getStudentsForAttendance($schedule_id);
             $attendance_data = $this->attendanceModel->getAttendanceByDate($schedule_id, $fecha);

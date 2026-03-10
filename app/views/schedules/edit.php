@@ -175,14 +175,6 @@
                 <div class="tab-pane fade" id="estudiantes" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="section-title mb-0">Alumnos Inscritos</h5>
-                        <div>
-                            <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#modalImportar">
-                                <i class="fas fa-file-import mr-1"></i> Importar Lista
-                            </button>
-                            <button class="btn btn-primary btn-sm" onclick="abrirModalAlumno()">
-                                <i class="fas fa-user-plus mr-1"></i> Agregar Manual
-                            </button>
-                        </div>
                     </div>
 
                     <!-- Barra búsqueda + orden -->
@@ -276,6 +268,13 @@
                                     <hr>
                                     <p class="mb-1"><strong>Total alumnos:</strong> <span class="badge badge-total float-right"><?php echo count($data['students']); ?></span></p>
                                     <hr>
+                                    <h6 class="card-title mt-4">Acciones de Lista</h6>
+                                    <button class="btn btn-sm btn-success btn-block mb-2" data-toggle="modal" data-target="#modalImportar">
+                                        <i class="fas fa-file-import mr-1"></i> Importar Lista CSV
+                                    </button>
+                                    <button class="btn btn-sm btn-primary btn-block mb-2" onclick="abrirModalAlumno()">
+                                        <i class="fas fa-user-plus mr-1"></i> Agregar Manualmente
+                                    </button>
                                     <button class="btn btn-sm btn-outline-secondary btn-block" onclick="exportarLista()">
                                         <i class="fas fa-download mr-1"></i> Exportar Lista
                                     </button>
@@ -302,6 +301,25 @@
                                     <div class="form-group">
                                         <label>Grupo</label>
                                         <input type="text" class="form-control" id="cfg_grupo" value="<?php echo $data['schedule']->grupo; ?>">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="d-flex justify-content-between align-items-center" for="cfg_especialidad" style="margin-bottom: 0.5rem;">
+                                            <span>Especialidad / Carrera</span>
+                                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" data-toggle="modal" data-target="#addEspecialidadModal" title="Nueva Especialidad">
+                                                <i class="fas fa-plus"></i> Nueva
+                                            </button>
+                                        </label>
+                                        <select id="cfg_especialidad" class="form-control">
+                                            <option value="">Seleccione...</option>
+                                            <?php if (!empty($data['especialidades_existentes'])) : ?>
+                                                <?php foreach ($data['especialidades_existentes'] as $esp) : ?>
+                                                    <option value="<?php echo htmlspecialchars($esp); ?>"
+                                                        <?php echo ($data['schedule']->especialidad == $esp) ? 'selected' : ''; ?>>
+                                                        <?php echo htmlspecialchars($esp); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </select>
                                     </div>
                                     <div class="form-group">
                                         <label>Periodo</label>
@@ -533,36 +551,61 @@
     </div>
 </div>
 
-<!-- Modal: Editar Alumno -->
+<!-- Modal Editar Alumno -->
 <div class="modal fade" id="modalEditarAlumno" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title"><i class="fas fa-user-edit mr-2"></i>Editar Alumno</h5>
-                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white border-bottom-0 pb-3">
+                <h5 class="modal-title font-weight-bold"><i class="fas fa-user-edit mr-2"></i>Editar Alumno</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body pt-4">
                 <input type="hidden" id="editAlumnoUserId">
                 <div class="form-group">
-                    <label>Nombre completo <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="editAlumnoNombre" placeholder="Ej: Juan García López">
+                    <label class="font-weight-bold text-muted small text-uppercase">Nombre Completo</label>
+                    <input type="text" class="form-control form-control-custom focus-info" id="editAlumnoNombre" placeholder="Nombre real">
                 </div>
-                <div class="form-group">
-                    <label>Matrícula <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="editAlumnoMatricula" placeholder="Ej: 21020001">
-                    <small class="text-muted mt-1 d-block">
-                        Email resultante: <span id="editAlumnoEmailPreview" class="text-info font-weight-bold"></span>
+                <div class="form-group mb-0">
+                    <label class="font-weight-bold text-muted small text-uppercase">Matrícula</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend"><span class="input-group-text bg-light"><i class="fas fa-id-card text-muted"></i></span></div>
+                        <input type="number" class="form-control form-control-custom focus-success" id="editAlumnoMatricula" placeholder="Ej: 2134509">
+                    </div>
+                    <small class="form-text mt-2 text-primary" style="font-size: 0.8rem;">
+                        <i class="fas fa-at mr-1"></i> <span id="editAlumnoEmailPreview">...@students.local</span>
                     </small>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i>Cancelar
-                </button>
-                <button type="button" class="btn btn-primary" onclick="guardarEdicionAlumno()">
-                    <i class="fas fa-save mr-1"></i>Guardar cambios
+            <div class="modal-footer bg-light border-top-0 pt-3">
+                <button type="button" class="btn btn-secondary btn-custom px-4" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary btn-custom px-4" onclick="guardarEdicionAlumno()">
+                    <i class="fas fa-save mr-1"></i> Guardar Cambios
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Nueva Especialidad -->
+<div class="modal fade" id="addEspecialidadModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Añadir Especialidad</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form id="addEspecialidadForm">
+                <div class="modal-body">
+                    <div class="form-group mb-0">
+                        <label for="especialidadNameInput">Nombre de la Carrera</label>
+                        <input type="text" id="especialidadNameInput" class="form-control" placeholder="Ej: Ingeniería en..." required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Usar</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -591,5 +634,6 @@
 <script>
 const SCHED_ID = <?php echo $data['schedule']->id; ?>;
 </script>
+
 
 <?php require APPROOT . '/views/inc/footer.php'; ?>

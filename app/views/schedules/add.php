@@ -58,10 +58,22 @@
 
                 <div class="row">
                     <div class="col-md-3 form-group">
-                        <label for="especialidadSelect">Especialidad / Carrera</label>
+                        <label class="d-flex justify-content-between align-items-center" for="especialidadSelect" style="margin-bottom: 0.5rem;">
+                            <span>Especialidad</span>
+                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" data-toggle="modal" data-target="#addEspecialidadModal" title="Nueva Especialidad">
+                                <i class="fas fa-plus"></i> Nueva
+                            </button>
+                        </label>
                         <select id="especialidadSelect" name="especialidad" class="form-control">
-                            <option value="sistemas" <?php echo (($data['especialidad'] ?? '') == 'sistemas') ? 'selected' : ''; ?>>Sistemas Computacionales</option>
-                            <option value="industrial" <?php echo (($data['especialidad'] ?? '') == 'industrial') ? 'selected' : ''; ?>>Ing. Industrial</option>
+                            <option value="">Seleccione...</option>
+                            <?php if (!empty($data['especialidades_existentes'])) : ?>
+                                <?php foreach ($data['especialidades_existentes'] as $esp) : ?>
+                                    <option value="<?php echo htmlspecialchars($esp); ?>"
+                                        <?php echo (isset($data['especialidad']) && $data['especialidad'] == $esp) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($esp); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </select>
                     </div>
                     <div class="col-md-3 form-group">
@@ -128,6 +140,28 @@
     </div>
 </div>
 
-<?php require APPROOT . '/views/inc/footer.php'; ?>
+<!-- Modal para Nueva Especialidad -->
+<div class="modal fade" id="addEspecialidadModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Añadir Especialidad</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form id="addEspecialidadForm">
+                <div class="modal-body">
+                    <div class="form-group mb-0">
+                        <label for="especialidadNameInput">Nombre de la Carrera</label>
+                        <input type="text" id="especialidadNameInput" class="form-control" placeholder="Ej: Ingeniería en..." required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar Especialidad</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <?php require APPROOT . '/views/inc/footer.php'; ?>

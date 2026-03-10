@@ -48,9 +48,12 @@ function filtrarYOrdenar() {
     const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
     
     // Buscar contenedor (tabla en Grades/Attendance, o div list en Edit)
-    const tbody = document.querySelector('table tbody');
+    const tableGrades = document.querySelector('.grades-table tbody');
+    const tableAttendance = document.querySelector('.table-responsive-custom tbody');
     const divContainer = document.getElementById('studentListContainer');
-    const container = tbody || divContainer;
+    
+    // El contenedor real actual en esta vista
+    const container = tableGrades || tableAttendance || divContainer;
     
     if (!container) return;
 
@@ -190,6 +193,17 @@ window.addEventListener("load", calcularTodo);
    NUEVA MATERIA ASÍNCRONA (add.php)
    ============================================== */
 $(document).ready(function() {
+    $('#addEspecialidadForm').on('submit', function(e) {
+        e.preventDefault();
+        const inputName = $('#especialidadNameInput').val().trim();
+        if(inputName.length === 0) return;
+        
+        // Agregar y seleccionar la nueva especialidad sin recargar la página
+        $('#especialidadSelect').append(new Option(inputName, inputName, true, true));
+        $('#addEspecialidadModal').modal('hide');
+        $('#addEspecialidadForm')[0].reset();
+    });
+
     $('#addSubjectForm').on('submit', function(e) {
         e.preventDefault();
         const btn = $(this).find('button[type="submit"]');
@@ -515,6 +529,7 @@ function guardarConfiguracion() {
     fd.append('grupo',   $('#cfg_grupo').val());
     fd.append('periodo', $('#cfg_periodo').val());
     fd.append('aula',    $('#cfg_aula').val());
+    fd.append('especialidad', $('#cfg_especialidad').val());
     enviarYRecargar(fd, 'Configuración guardada');
 }
 

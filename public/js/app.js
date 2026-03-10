@@ -204,6 +204,16 @@ $(document).ready(function() {
         $('#addEspecialidadForm')[0].reset();
     });
 
+    $('#addInstitucionForm').on('submit', function(e) {
+        e.preventDefault();
+        const inputName = $('#institucionNameInput').val().trim();
+        if(inputName.length === 0) return;
+        
+        $('#institucionSelect').append(new Option(inputName, inputName, true, true));
+        $('#addInstitucionModal').modal('hide');
+        $('#addInstitucionForm')[0].reset();
+    });
+
     $('#addSubjectForm').on('submit', function(e) {
         e.preventDefault();
         const btn = $(this).find('button[type="submit"]');

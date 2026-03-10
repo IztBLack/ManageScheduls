@@ -57,15 +57,34 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-md-3 form-group">
+                    <div class="col-md-6 form-group">
+                        <label class="d-flex justify-content-between align-items-center" for="institucionSelect" style="margin-bottom: 0.5rem;">
+                            <span>Institución <span class="text-danger">*</span></span>
+                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" data-toggle="modal" data-target="#addInstitucionModal" title="Nueva Institución">
+                                <i class="fas fa-plus"></i> Nueva
+                            </button>
+                        </label>
+                        <select id="institucionSelect" name="institucion" class="form-control" required>
+                            <option value="">Seleccione Institución...</option>
+                            <?php if (!empty($data['instituciones_existentes'])) : ?>
+                                <?php foreach ($data['instituciones_existentes'] as $inst) : ?>
+                                    <option value="<?php echo htmlspecialchars($inst); ?>"
+                                        <?php echo (isset($data['institucion']) && $data['institucion'] == $inst) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($inst); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-6 form-group">
                         <label class="d-flex justify-content-between align-items-center" for="especialidadSelect" style="margin-bottom: 0.5rem;">
-                            <span>Especialidad</span>
+                            <span>Especialidad (Carrera)</span>
                             <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" data-toggle="modal" data-target="#addEspecialidadModal" title="Nueva Especialidad">
                                 <i class="fas fa-plus"></i> Nueva
                             </button>
                         </label>
                         <select id="especialidadSelect" name="especialidad" class="form-control">
-                            <option value="">Seleccione...</option>
+                            <option value="">Seleccione Carrera...</option>
                             <?php if (!empty($data['especialidades_existentes'])) : ?>
                                 <?php foreach ($data['especialidades_existentes'] as $esp) : ?>
                                     <option value="<?php echo htmlspecialchars($esp); ?>"
@@ -76,19 +95,23 @@
                             <?php endif; ?>
                         </select>
                     </div>
-                    <div class="col-md-3 form-group">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 form-group">
                         <label for="periodoInput">Periodo Escolar</label>
                         <input type="text" id="periodoInput" name="periodo" class="form-control"
-                            value="<?php echo $data['periodo'] ?? 'AGO-DIC 2026'; ?>">
+                            placeholder="Ej: AGOSTO-DICIEMBRE 2026" required
+                            value="<?php echo $data['periodo'] ?? 'AGOSTO-DICIEMBRE 2026'; ?>">
                     </div>
-                    <div class="col-md-3 form-group">
+                    <div class="col-md-4 form-group">
                         <label for="turnoInput">Hora</label>
                         <input type="text" id="turnoInput" name="turno" class="form-control"
                             placeholder="Ej: 14-15" pattern="^([01]?[0-9]|2[0-3])-([01]?[0-9]|2[0-3])$"
                             title="Formato 24h numérico, ej. 14-15"
                             value="<?php echo htmlspecialchars($data['turno'] ?? ''); ?>">
                     </div>
-                    <div class="col-md-3 form-group">
+                    <div class="col-md-4 form-group">
                         <label for="salonInput">Aula</label>
                         <input type="text" id="salonInput" name="salon" class="form-control"
                             placeholder="Ej: Edificio A-10"
@@ -158,6 +181,30 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar Especialidad</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Nueva Institucion -->
+<div class="modal fade" id="addInstitucionModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Añadir Institución</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form id="addInstitucionForm">
+                <div class="modal-body">
+                    <div class="form-group mb-0">
+                        <label for="institucionNameInput">Nombre o Abreviatura</label>
+                        <input type="text" id="institucionNameInput" class="form-control" placeholder="Ej: UNAM, TEC, etc." required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar Institución</button>
                 </div>
             </form>
         </div>

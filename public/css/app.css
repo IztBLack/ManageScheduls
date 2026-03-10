@@ -68,6 +68,11 @@ select.form-control-custom {
     box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, .25) !important;
 }
 
+.focus-warning:focus {
+    box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, .25) !important;
+    border-color: #ffc107 !important;
+}
+
 .btn-custom {
     border-radius: 2rem;
     padding: 0.75rem;

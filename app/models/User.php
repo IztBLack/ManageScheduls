@@ -113,6 +113,15 @@ class User {
         return $this->db->execute();
     }
 
+    // Actualizar nombre y correo del perfil
+    public function updateProfile($id, $name, $email) {
+        $this->db->query('UPDATE users SET name = :name, email = :email WHERE id = :id');
+        $this->db->bind(':name', $name);
+        $this->db->bind(':email', $email);
+        $this->db->bind(':id', $id);
+        return $this->db->execute();
+    }
+
     public function deleteStudent($id)
     {
         $this->db->query('DELETE FROM users WHERE id = :id');

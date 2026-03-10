@@ -61,15 +61,24 @@
       
       <ul class="navbar-nav ml-auto align-items-center mt-3 mt-lg-0">
         <?php if (isset($_SESSION['user_id'])) : ?>
-            <li class="nav-item mb-2 mb-lg-0 mr-lg-3">
-                <span class="text-light opacity-75 d-none d-lg-block">
-                    <i class="fas fa-user-circle mr-1"></i> Hola, <strong><?php echo $_SESSION['user_name']; ?></strong>
-                </span>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link nav-link-custom nav-btn-logout" href="<?php echo URLROOT; ?>/users/logout">
-                    <i class="fas fa-sign-out-alt mr-1"></i> Cerrar Sesión
+            <!-- Menú de Usuario Logueado (Dropdown) -->
+            <li class="nav-item dropdown mb-2 mb-lg-0 mr-lg-2">
+                <a class="nav-link nav-link-custom dropdown-toggle text-light opacity-75 d-flex align-items-center" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-user-circle mr-2" style="font-size: 1.2rem;"></i>
+                    <span>Hola, <strong><?php echo $_SESSION['user_name']; ?></strong></span>
                 </a>
+                <div class="dropdown-menu dropdown-menu-right shadow border-0 mt-2" aria-labelledby="userDropdown" style="border-radius: 8px;">
+                    <a class="dropdown-item py-2" href="<?php echo URLROOT; ?>/users/profile">
+                        <i class="fas fa-id-badge text-info mr-2"></i>Mi Perfil
+                    </a>
+                    <a class="dropdown-item py-2" href="<?php echo URLROOT; ?>/users/change_password">
+                        <i class="fas fa-key text-secondary mr-2"></i>Cambiar Contraseña
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item py-2 text-danger" href="<?php echo URLROOT; ?>/users/logout">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+                    </a>
+                </div>
             </li>
         <?php else : ?>
             <li class="nav-item mb-2 mb-lg-0 w-100 text-center text-lg-left">

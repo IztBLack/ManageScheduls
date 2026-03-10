@@ -48,8 +48,10 @@ class Schedules extends Controller
                 'aula'         => $sanitize($_POST['salon']         ?? ''),
                 'periodo'      => $sanitize($_POST['periodo']       ?? ''),
                 'especialidad' => $sanitize($_POST['especialidad']  ?? ''),
+                'institucion'  => $sanitize($_POST['institucion']   ?? ''),
                 'subjects'     => $this->scheduleModel->getSubjects($_SESSION['user_id']),
                 'especialidades_existentes' => $this->scheduleModel->getEspecialidadesByTeacher($_SESSION['user_id']),
+                'instituciones_existentes'  => $this->scheduleModel->getInstitucionesByTeacher($_SESSION['user_id']),
                 'error'        => '',
                 'warning'      => '',
             ];
@@ -66,11 +68,36 @@ class Schedules extends Controller
                 return;
             }
 
+            if (!empty($data['periodo']) && !preg_match('/^[a-záéíóúñ]+\s*-\s*[a-záéíóúñ]+\s+[0-9]{4}$/iu', $data['periodo'])) {
+                $data['error'] = 'El formato del periodo debe ser MES-MES AÑO (Ej: AGO-DIC 2024).';
+                $this->view('schedules/add', $data);
+                return;
+            }
+
             // Validar que el maestro no duplique el mismo grupo para la misma materia en el mismo periodo
             if ($this->scheduleModel->groupExists($data['teacher_id'], $data['subject_id'], $data['grupo'], $data['periodo'])) {
                 $data['error'] = 'Ya existe un grupo registrado con esta materia, nombre y periodo.';
                 $this->view('schedules/add', $data);
                 return;
+            }
+
+            // Validar empalmes de aula
+            if (!empty($data['turno']) && !empty($data['aula'])) {
+                $parts = explode('-', $data['turno']);
+                if (count($parts) == 2) {
+                    $s_start = (int)$parts[0];
+                    $s_end   = (int)$parts[1];
+                    if ($s_start >= $s_end) {
+                        $data['error'] = 'La hora de inicio debe ser menor a la hora de fin.';
+                        $this->view('schedules/add', $data);
+                        return;
+                    }
+                    if ($this->scheduleModel->checkAulaOverlap($data['aula'], $data['periodo'], $s_start, $s_end)) {
+                        $data['error'] = "El aula '{$data['aula']}' ya se encuentra ocupada en ese horario dentro de ese periodo escolar.";
+                        $this->view('schedules/add', $data);
+                        return;
+                    }
+                }
             }
 
             if ($this->scheduleModel->addGroup($data)) {
@@ -85,6 +112,7 @@ class Schedules extends Controller
             $data = [
                 'subjects' => $this->scheduleModel->getSubjects($_SESSION['user_id']),
                 'especialidades_existentes' => $this->scheduleModel->getEspecialidadesByTeacher($_SESSION['user_id']),
+                'instituciones_existentes'  => $this->scheduleModel->getInstitucionesByTeacher($_SESSION['user_id']),
                 'error'    => '',
                 'warning'  => '',
             ];

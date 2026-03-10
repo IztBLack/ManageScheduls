@@ -239,13 +239,62 @@
 
     public function profile()
     {
-      // Check Logged In
-      if ($this->isLoggedIn()) {
-        // Obtain the data of the session user (name, email and password)
-        $user = $this->userModel->getUser();
-        // Load the profile view and pass the user's data
-        $this->view('profile/index', ['user' => $user]);
-      }
+        if (!$this->isLoggedIn()) {
+            redirect('users/login');
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
+            
+            $user = $this->userModel->getUserById($_SESSION['user_id']);
+            
+            $data = [
+                'user' => $user,
+                'name_err' => '',
+                'email_err' => ''
+            ];
+
+            $newName = trim($_POST['name'] ?? '');
+            $newEmail = trim($_POST['email'] ?? '');
+
+            if (empty($newName)) {
+                $data['name_err'] = 'Por favor ingresa un nombre.';
+            }
+
+            if (empty($newEmail)) {
+                $data['email_err'] = 'Por favor ingresa un correo electrónico.';
+            } elseif (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+                $data['email_err'] = 'El formato del correo es inválido.';
+            } else {
+                $existingUser = $this->userModel->getUserByEmail($newEmail);
+                if ($existingUser && $existingUser->id != $_SESSION['user_id']) {
+                    $data['email_err'] = 'Este correo ya se encuentra en uso.';
+                }
+            }
+
+            if (empty($data['name_err']) && empty($data['email_err'])) {
+                if ($this->userModel->updateProfile($_SESSION['user_id'], $newName, $newEmail)) {
+                    $_SESSION['user_name'] = $newName;
+                    $_SESSION['user_email'] = $newEmail;
+                    
+                    flash('register_success', 'Tus datos de perfil han sido actualizados exitosamente.');
+                    redirect('pages/index');
+                } else {
+                    die('Algo salió mal al actualizar el perfil.');
+                }
+            } else {
+                $data['user']->name = $newName;
+                $data['user']->email = $newEmail;
+                $this->view('profile/index', $data);
+            }
+        } else {
+            $user = $this->userModel->getUserById($_SESSION['user_id']);
+            $this->view('profile/index', [
+                'user' => $user,
+                'name_err' => '',
+                'email_err' => ''
+            ]);
+        }
     }
 
     public function change_password() {
@@ -253,25 +302,32 @@
             redirect('users/login');
         }
 
-        // Si no necesita cambiar, lo mandamos a su inicio normal
-        if (empty($_SESSION['must_change_password'])) {
-            if($_SESSION['user_role'] == 'maestro'){
-                redirect('pages/index');
-            } else {
-                redirect('pages/index');
-            }
-        }
+        $isForced = !empty($_SESSION['must_change_password']);
 
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
 
             $data = [
-                'password' => trim($_POST['password']),
-                'confirm_password' => trim($_POST['confirm_password']),
+                'isForced' => $isForced,
+                'current_password' => trim($_POST['current_password'] ?? ''),
+                'password' => trim($_POST['password'] ?? ''),
+                'confirm_password' => trim($_POST['confirm_password'] ?? ''),
+                'current_password_err' => '',
                 'password_err' => '',
                 'confirm_password_err' => ''
             ];
 
+            // Si es voluntario, exigimos la contraseña actual
+            $currentUser = $this->userModel->getUserById($_SESSION['user_id']);
+            if (!$isForced) {
+                if (empty($data['current_password'])) {
+                    $data['current_password_err'] = 'Ingresa tu contraseña actual.';
+                } elseif (!password_verify($data['current_password'], $currentUser->password)) {
+                    $data['current_password_err'] = 'Contraseña actual incorrecta.';
+                }
+            }
+
+            // Validar nueva contraseña
             if (empty($data['password'])) {
                 $data['password_err'] = 'Por favor ingresa una contraseña nueva.';
             } elseif (strlen($data['password']) < 8) {
@@ -282,40 +338,41 @@
 
             if (empty($data['confirm_password'])) {
                 $data['confirm_password_err'] = 'Por favor confirma la contraseña.';
-            } else {
-                if ($data['password'] != $data['confirm_password']) {
-                    $data['confirm_password_err'] = 'Las contraseñas no coinciden.';
-                }
+            } elseif ($data['password'] != $data['confirm_password']) {
+                $data['confirm_password_err'] = 'Las contraseñas no coinciden.';
             }
 
-            // Validar que no sea la misma que la por defecto (matricula/email) - Opcional, pero recomendado
-            $currentUser = $this->userModel->getUserById($_SESSION['user_id']);
-            if (password_verify($data['password'], $currentUser->password)) {
+            // Validar que no recicle la misma (sea forzado o no)
+            if (empty($data['password_err']) && password_verify($data['password'], $currentUser->password)) {
                 $data['password_err'] = 'Debes usar una contraseña diferente a la actual.';
             }
 
-            if (empty($data['password_err']) && empty($data['confirm_password_err'])) {
-                // Actualizar password
+            // Si todo OK procedemos
+            if (empty($data['current_password_err']) && empty($data['password_err']) && empty($data['confirm_password_err'])) {
                 if ($this->userModel->updatePassword($_SESSION['user_id'], $data['password'])) {
-                    // Limpiar flag
-                    $_SESSION['must_change_password'] = false;
-                    flash('register_success', 'Contraseña actualizada correctamente. Bienvenido.');
                     
-                    if($_SESSION['user_role'] == 'maestro'){
-                        redirect('pages/index');
+                    if ($isForced) {
+                        $_SESSION['must_change_password'] = false;
+                        flash('register_success', 'Gracias por actualizar tu contraseña. Bienvenido.');
                     } else {
-                        redirect('pages/index');
+                        flash('register_success', 'Tu contraseña ha sido actualizada exitosamente.');
                     }
+
+                    redirect('pages/index');
                 } else {
-                    die('Algo salió mal al actualizar la contraseña');
+                    die('Algo salió mal al actualizar la BD.');
                 }
             } else {
                 $this->view('users/change_password', $data);
             }
         } else {
+            // GET Request
             $data = [
+                'isForced' => $isForced,
+                'current_password' => '',
                 'password' => '',
                 'confirm_password' => '',
+                'current_password_err' => '',
                 'password_err' => '',
                 'confirm_password_err' => ''
             ];

@@ -21,17 +21,46 @@ class Schedule {
         return ($row) ? true : false;
     }
 
+    public function checkAulaOverlap($aula, $periodo, $startHour, $endHour, $exclude_id = null) {
+        $sql = 'SELECT id, turno FROM schedules WHERE aula = :aula AND periodo = :periodo';
+        if ($exclude_id) {
+            $sql .= ' AND id != :exclude_id';
+        }
+        $this->db->query($sql);
+        $this->db->bind(':aula', $aula);
+        $this->db->bind(':periodo', $periodo);
+        if ($exclude_id) {
+            $this->db->bind(':exclude_id', $exclude_id);
+        }
+        $schedules = $this->db->resultSet();
+        
+        foreach ($schedules as $sch) {
+            if (empty($sch->turno)) continue;
+            $parts = explode('-', $sch->turno);
+            if (count($parts) == 2) {
+                $s_start = (int)$parts[0];
+                $s_end = (int)$parts[1];
+                // Existe colisión si el mayor de los inicios es menor al menor de los finales
+                if (max($startHour, $s_start) < min($endHour, $s_end)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public function addGroup($data) {
         try {
-            $this->db->query('INSERT INTO schedules (teacher_id, subject_id, grupo, turno, aula, periodo, especialidad) 
-                              VALUES (:tid, :sid, :grp, :trn, :aul, :per, :esp)');
+            $this->db->query('INSERT INTO schedules (teacher_id, subject_id, grupo, turno, aula, periodo, especialidad, institucion) 
+                              VALUES (:tid, :sid, :grp, :trn, :aul, :per, :esp, :ins)');
             $this->db->bind(':tid', $data['teacher_id']);
             $this->db->bind(':sid', $data['subject_id']);
             $this->db->bind(':grp', $data['grupo']);
             $this->db->bind(':trn', $data['turno']);
             $this->db->bind(':aul', $data['aula']);
             $this->db->bind(':per', $data['periodo']);
-            $this->db->bind(':esp', $data['especialidad']);
+            $this->db->bind(':esp', $data['especialidad'] ?? null);
+            $this->db->bind(':ins', $data['institucion'] ?? null);
             return $this->db->execute();
         } catch (Exception $e) {
             error_log('Schedule::addGroup error: ' . $e->getMessage());
@@ -139,6 +168,17 @@ class Schedule {
             $especialidades[] = $row->especialidad;
         }
         return $especialidades;
+    }
+
+    public function getInstitucionesByTeacher($teacher_id) {
+        $this->db->query("SELECT DISTINCT institucion FROM schedules WHERE teacher_id = :tid AND institucion IS NOT NULL AND institucion != ''");
+        $this->db->bind(':tid', $teacher_id);
+        $results = $this->db->resultSet();
+        $instituciones = [];
+        foreach($results as $row) {
+            $instituciones[] = $row->institucion;
+        }
+        return $instituciones;
     }
 
     public function getUnitsBySchedule($scheduleId)

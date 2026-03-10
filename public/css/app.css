@@ -1,0 +1,193 @@
+/* =========================================
+   AUTHENTICATION & PROFILE CARDS
+   ========================================= */
+.auth-card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 1rem 3rem rgba(0,0,0,0.15);
+    overflow: hidden;
+}
+.auth-header {
+    background: linear-gradient(135deg, #343a40 0%, #23272b 100%);
+    color: white;
+    padding: 2rem 1rem;
+    text-align: center;
+    border-bottom: 3px solid #ffc107;
+}
+.auth-header.bg-profile {
+    background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%);
+    border-bottom-color: #ffc107;
+}
+.auth-header.border-login { border-bottom-color: #007bff; }
+.auth-header.border-register { border-bottom-color: #28a745; }
+
+.auth-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #ffc107;
+}
+.auth-header.bg-profile .auth-icon { color: #fff; }
+
+/* =========================================
+   CUSTOM FORM CONTROLS
+   ========================================= */
+.form-control-custom {
+    border-radius: 2rem;
+    padding: 1.5rem 1.25rem;
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+}
+.form-control-custom:focus {
+    background-color: #fff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+select.form-control-custom {
+    height: calc(3rem + 2px); 
+    padding: 0.5rem 1.25rem;
+}
+
+/* Specific Focus Colors if needed */
+.focus-success:focus { box-shadow: 0 0 0 0.2rem rgba(40,167,69,.25) !important; }
+.focus-info:focus { box-shadow: 0 0 0 0.2rem rgba(23,162,184,.25) !important; }
+
+.btn-custom {
+    border-radius: 2rem;
+    padding: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+.btn-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.15);
+}
+
+/* =========================================
+   SCHEDULES & CONFIG CARDS (Groups, Add, Edit)
+   ========================================= */
+.config-card { 
+    border: none; 
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15); 
+}
+.config-header { 
+    background: linear-gradient(135deg, #343a40 0%, #23272b 100%); 
+    border-bottom: 3px solid #ffc107; 
+}
+/* Index Specific */
+.config-header.index-header {
+    border-radius: 0.5rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    color: white;
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+}
+.feature-card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+}
+.card-icon-bg {
+    position: absolute;
+    right: -20px;
+    bottom: -20px;
+    font-size: 8rem;
+    color: rgba(0,0,0,0.03);
+    transform: rotate(-15deg);
+    z-index: 0;
+}
+.card-body, .card-footer {
+    position: relative;
+    z-index: 1;
+}
+.transition-hover {
+    transition: all 0.2s ease-in-out;
+}
+.transition-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+}
+
+/* =========================================
+   GRADES & ATTENDANCE TABLES
+   ========================================= */
+.grades-container {
+    width: 100%;
+    margin: 0 auto;
+    padding: 15px;
+}
+.grades-container form { width: 100%; display: block; }
+
+.table-responsive-custom {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: 70vh;
+    width: 100%;
+    border-radius: 4px;
+}
+.table-responsive-custom::-webkit-scrollbar { height: 6px; width: 6px; }
+.table-responsive-custom::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
+.table-responsive-custom::-webkit-scrollbar-track { background: #f1f1f1; }
+
+.grades-table {
+    width: auto;
+    min-width: 100%;
+    margin-bottom: 0;
+    table-layout: auto;
+    border-collapse: collapse;
+    white-space: nowrap;
+}
+.grades-table th, .grades-table td {
+    white-space: nowrap;
+    padding: 0.5rem 0.4rem;
+    text-align: center;
+    vertical-align: middle;
+}
+.grades-table td:first-child {
+    white-space: normal;
+    min-width: 150px;
+    max-width: 200px;
+    word-wrap: break-word;
+}
+.grades-table th:first-child, .grades-table td:first-child {
+    position: sticky;
+    left: 0;
+    background-color: #ffffff;
+    z-index: 10;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    background-clip: padding-box;
+}
+.grades-table td input.form-control-sm {
+    width: 60px;
+    min-width: 50px;
+    max-width: 70px;
+    margin: 0 auto;
+    padding: 0.2rem 0.1rem;
+    font-size: 0.85rem;
+}
+.grades-table tbody tr:hover { background-color: rgba(0, 123, 255, 0.05); }
+.grades-table input:disabled {
+    background-color: #e9ecef;
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+
+.calif-unidad { min-width: 40px; padding: 0.5rem 0.2rem !important; }
+.grades-table th.bg-info { padding: 0.5rem 0.3rem; font-size: 0.9rem; }
+.final { min-width: 50px; }
+
+@media (max-width: 768px) {
+    .grades-container { padding: 10px 5px; }
+    .grades-table td input.form-control-sm {
+        width: 45px;
+        min-width: 40px;
+        font-size: 0.75rem;
+        padding: 0.15rem;
+    }
+    .grades-table th, .grades-table td { padding: 0.4rem 0.2rem; }
+}

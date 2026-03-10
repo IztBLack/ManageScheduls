@@ -12,119 +12,41 @@ class Subject
     {
         $this->db->query('SELECT * FROM subjects WHERE id = :id');
         $this->db->bind(':id', $id);
-
         return $this->db->single();
     }
 
     public function getAllSubjects()
     {
-        $this->db->query('SELECT * FROM subjects');
+        $this->db->query('SELECT * FROM subjects ORDER BY subject_name ASC');
         return $this->db->resultSet();
     }
 
-    public function addSubject($name, $subject, $teachers)
+    public function addSubject($subject_name, $teacher_id = null)
     {
-        $this->db->beginTransaction();
+        try {
+            $this->db->query('INSERT INTO subjects (subject_name) VALUES (:subject_name)');
+            $this->db->bind(':subject_name', $subject_name);
 
-        $this->db->query('INSERT INTO subjects (name, subject_name) VALUES (:name, :subject_name)');
-        $this->db->bind(':name', $name);
-        $this->db->bind(':subject_name', $subject);
-
-        if (!$this->db->execute()) {
-            $this->db->rollBack();
-            return false;
-        }
-
-        $subjectId = $this->db->lastInsertId();
-
-        // Insertar los profesores en la tabla classes
-        $this->db->query('INSERT INTO classes (subject_id, teacher_id) VALUES (:subjectId, :teacherId)');
-
-        foreach ($teachers as $teacherId) {
-            $this->db->bind(':subjectId', $subjectId);
-            $this->db->bind(':teacherId', $teacherId);
-
-            if (!$this->db->execute()) {
-                $this->db->rollBack();
+            if ($this->db->execute()) {
+                $subject_id = $this->db->lastInsertId();
+                if ($teacher_id !== null) {
+                    $this->db->query('INSERT INTO classes (subject_id, teacher_id) VALUES (:subject_id, :teacher_id)');
+                    $this->db->bind(':subject_id', $subject_id);
+                    $this->db->bind(':teacher_id', $teacher_id);
+                    $this->db->execute();
+                }
+                return $subject_id;
+            } else {
                 return false;
             }
-        }
-
-        // Si todo ha ido bien, confirmar la transacción
-        $this->db->commit();
-        return true;
-    }
-
-    public function editSubject($id, $name, $subject, $teacherIds)
-    {
-        // Actualizar los datos básicos de la asignatura
-        $this->db->query('UPDATE subjects SET name = :name, subject_name = :subject_name WHERE id = :id');
-        $this->db->bind(':id', $id);
-        $this->db->bind(':name', $name);
-        $this->db->bind(':subject_name', $subject);
-        $this->db->execute();
-    
-        // Verificar si hay profesores registrados para el subject actual
-        $existingTeachers = $this->getAssignedTeachers($id);
-    
-        if (!empty($existingTeachers)) {
-            // Eliminar las asignaciones existentes
-            $this->removeTeachersFromSubject($id);
-        }
-    
-        // Insertar las nuevas asignaciones de profesores
-        $this->addTeachersToSubject($id, $teacherIds);
-    
-        return true;
-    }    
-
-    public function removeTeachersFromSubject($subjectId)
-    {
-        // Eliminar las asignaciones existentes para la asignatura
-        $this->db->query('DELETE FROM classes WHERE subject_id = :subjectId');
-        $this->db->bind(':subjectId', $subjectId);
-        $this->db->execute();
-    }
-    
-    public function addTeachersToSubject($subjectId, $teacherIds)
-    {
-        // Insertar las nuevas asignaciones de profesores
-        $this->db->query('INSERT INTO classes (subject_id, teacher_id) VALUES (:subjectId, :teacherId)');
-    
-        foreach ($teacherIds as $teacherId) {
-            $this->db->bind(':subjectId', $subjectId);
-            $this->db->bind(':teacherId', $teacherId);
-            $this->db->execute();
+        } catch (Exception $e) {
+            die(json_encode(['success' => false, 'error' => 'Error SQL: ' . $e->getMessage()]));
         }
     }
 
-    public function getAssignedTeachers($subjectId)
-    {
-        $this->db->query('SELECT teacher_id FROM classes WHERE subject_id = :subject_id');
-        $this->db->bind(':subject_id', $subjectId);
-        return $this->db->resultSet();
-    }
-
-    public function getSchedulesWithNames(){
-        $this->db->query("SELECT s.id, s.grupo, s.turno, s.aula as salon, m.name as subject_name 
-                        FROM schedules s
-                        INNER JOIN subjects m ON s.subject_id = m.id");
-        return $this->db->resultset();
-    }
     public function deleteSubject($id){
         $this->db->query('DELETE FROM subjects WHERE id = :id');
         $this->db->bind(':id', $id);
-
         return $this->db->execute();
-    }
-
-    public function filterSubjects($filter){
-        $this->db->query('SELECT * FROM subjects WHERE 
-            name LIKE :filter OR
-            subject_name LIKE :filter');
-
-        $this->db->bind(':filter', "%$filter%");
-
-        return $this->db->resultSet();
     }
 }

@@ -21,11 +21,8 @@ class Schedule {
         return ($row) ? true : false;
     }
 
-    public function addFullStructure($data) {
+    public function addGroup($data) {
         try {
-            $this->db->beginTransaction();
-
-            // 1. Insertar el Grupo
             $this->db->query('INSERT INTO schedules (teacher_id, subject_id, grupo, turno, aula, periodo, especialidad) 
                               VALUES (:tid, :sid, :grp, :trn, :aul, :per, :esp)');
             $this->db->bind(':tid', $data['teacher_id']);
@@ -35,60 +32,26 @@ class Schedule {
             $this->db->bind(':aul', $data['aula']);
             $this->db->bind(':per', $data['periodo']);
             $this->db->bind(':esp', $data['especialidad']);
-            $this->db->execute();
-
-            $schedule_id = $this->db->lastInsertId();
-
-            // 2. Insertar Unidades y Actividades
-            if (!empty($data['units'])) {
-                foreach ($data['units'] as $u_index => $unit) {
-
-                    // Nombre de unidad: usar el que escribió el usuario o generar uno
-                    $nombreUnidad = !empty(trim($unit['unit_name'] ?? ''))
-                        ? trim($unit['unit_name'])
-                        : "Unidad $u_index";
-
-                    $this->db->query('INSERT INTO unidades (schedule_id, nombre, orden) VALUES (:sid, :nom, :ord)');
-                    $this->db->bind(':sid', $schedule_id);
-                    $this->db->bind(':nom', $nombreUnidad);
-                    $this->db->bind(':ord', intval($u_index));
-                    $this->db->execute();
-
-                    $unidad_id = $this->db->lastInsertId();
-
-                    // 3. Insertar Actividades
-                    foreach ($unit['activities'] as $act) {
-                        $nombre = trim($act['name'] ?? '');
-                        $peso   = intval($act['weight'] ?? 0);   // <-- siempre INT, nunca string vacío
-                        $fecha  = !empty($act['due_date']) ? $act['due_date'] : null;
-
-                        if (empty($nombre)) continue; // saltar filas sin nombre
-
-                        $this->db->query('INSERT INTO actividades (unidad_id, nombre, ponderacion, fecha_entrega) 
-                                          VALUES (:uid, :nom, :pon, :fecha)');
-                        $this->db->bind(':uid',   $unidad_id);
-                        $this->db->bind(':nom',   $nombre);
-                        $this->db->bind(':pon',   $peso);
-                        $this->db->bind(':fecha', $fecha);
-                        $this->db->execute();
-                    }
-                }
-            }
-
-            return $this->db->commit();
-
+            return $this->db->execute();
         } catch (Exception $e) {
-            $this->db->rollBack();
-            error_log('Schedule::addFullStructure error: ' . $e->getMessage());
+            error_log('Schedule::addGroup error: ' . $e->getMessage());
             return false;
         }
     }
 
-    public function getSchedulesWithNames()
+    public function getSchedulesWithNames($teacher_id = null)
     {
-        $this->db->query('SELECT s.*, su.subject_name AS subject_name, s.grupo
-                          FROM schedules s
-                          LEFT JOIN subjects su ON s.subject_id = su.id');
+        if ($teacher_id) {
+            $this->db->query('SELECT s.*, su.subject_name AS subject_name, s.grupo
+                              FROM schedules s
+                              LEFT JOIN subjects su ON s.subject_id = su.id
+                              WHERE s.teacher_id = :tid');
+            $this->db->bind(':tid', $teacher_id);
+        } else {
+            $this->db->query('SELECT s.*, su.subject_name AS subject_name, s.grupo
+                              FROM schedules s
+                              LEFT JOIN subjects su ON s.subject_id = su.id');
+        }
         return $this->db->resultSet();
     }
 
@@ -152,9 +115,18 @@ class Schedule {
         return $this->db->resultSet();
     }
 
-    public function getSubjects()
+    public function getSubjects($user_id = null)
     {
-        $this->db->query('SELECT id, subject_name FROM subjects ORDER BY subject_name');
+        if ($user_id) {
+            $this->db->query('SELECT s.id, s.subject_name FROM subjects s 
+                              INNER JOIN classes c ON s.id = c.subject_id 
+                              INNER JOIN teachers t ON c.teacher_id = t.id 
+                              WHERE t.user_id = :user_id 
+                              ORDER BY s.subject_name ASC');
+            $this->db->bind(':user_id', $user_id);
+        } else {
+            $this->db->query('SELECT id, subject_name FROM subjects ORDER BY subject_name');
+        }
         return $this->db->resultSet();
     }
 

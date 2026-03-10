@@ -9,11 +9,12 @@
     public function __construct()
     {
       $this->userModel = $this->model('User');
+      $this->teacherModel = $this->model('Teacher');
     }
 
     public function index()
     {
-      redirect('welcome');
+      redirect('users/login');
     }
 
     public function register()
@@ -33,6 +34,7 @@
         $data = [
           'name' => trim($_POST['name']),
           'email' => trim($_POST['email']),
+          'rol' => trim($_POST['rol'] ?? 'alumno'),
           'password' => trim($_POST['password']),
           'confirm_password' => trim($_POST['confirm_password']),
           'name_err' => '',
@@ -57,10 +59,12 @@
 
         // Validate password
         if (empty($data['password'])) {
-          $password_err = 'Please enter a password.';
-        } elseif (strlen($data['password']) < 6) {
-          $data['password_err'] = 'Password must have atleast 6 characters.';
-        }        
+          $data['password_err'] = 'Please enter a password.';
+        } elseif (strlen($data['password']) < 8) {
+          $data['password_err'] = 'Password must have atleast 8 characters.';
+        } elseif (!preg_match('/[A-Za-z]/', $data['password']) || !preg_match('/[0-9]/', $data['password'])) {
+          $data['password_err'] = 'Password must contain at least one letter and one number.';
+        }
         // Validate confirm password
         if (empty($data['confirm_password'])) {
           $data['confirm_password_err'] = 'Please confirm password.';
@@ -76,6 +80,9 @@
 
           // Hash Password
           $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+          
+          // Por ser registro voluntario, no requerir cambio posterior
+          $data['must_change_password'] = 0;
 
           // //Execute
           if ($this->userModel->register($data)) {
@@ -113,7 +120,7 @@
     {
       // Check if logged in
       if ($this->isLoggedIn()) {
-        redirect('.URLROOT.');
+        redirect('users/login');
       }
 
       // Check if POST
@@ -192,16 +199,20 @@
         $_SESSION['is_logged_in'] = true;
         $_SESSION['must_change_password'] = (bool)$user->must_change_password;
 
-        if ($_SESSION['must_change_password']) {
+        if ($_SESSION['must_change_password'] && $user->rol != 'maestro') {
             redirect('users/change_password');
             return;
         }
 
         // Redirección basada en el rol
         if($user->rol == 'maestro'){
-            redirect('schedules/index');
+            if (!$this->teacherModel->getTeacherByUserId($user->id)) {
+                redirect('teachers/complete_profile');
+                return;
+            }
+            redirect('pages/index');
         } else {
-            redirect('students/index');
+            redirect('pages/index');
         }
     }
     
@@ -245,9 +256,9 @@
         // Si no necesita cambiar, lo mandamos a su inicio normal
         if (empty($_SESSION['must_change_password'])) {
             if($_SESSION['user_role'] == 'maestro'){
-                redirect('schedules/index');
+                redirect('pages/index');
             } else {
-                redirect('students/index');
+                redirect('pages/index');
             }
         }
 
@@ -263,8 +274,10 @@
 
             if (empty($data['password'])) {
                 $data['password_err'] = 'Por favor ingresa una contraseña nueva.';
-            } elseif (strlen($data['password']) < 6) {
-                $data['password_err'] = 'La contraseña debe tener al menos 6 caracteres.';
+            } elseif (strlen($data['password']) < 8) {
+                $data['password_err'] = 'La contraseña debe tener al menos 8 caracteres.';
+            } elseif (!preg_match('/[A-Za-z]/', $data['password']) || !preg_match('/[0-9]/', $data['password'])) {
+                $data['password_err'] = 'La contraseña debe contener al menos una letra y un número.';
             }
 
             if (empty($data['confirm_password'])) {
@@ -289,9 +302,9 @@
                     flash('register_success', 'Contraseña actualizada correctamente. Bienvenido.');
                     
                     if($_SESSION['user_role'] == 'maestro'){
-                        redirect('schedules/index');
+                        redirect('pages/index');
                     } else {
-                        redirect('students/index');
+                        redirect('pages/index');
                     }
                 } else {
                     die('Algo salió mal al actualizar la contraseña');

@@ -1,26 +1,5 @@
 <?php require APPROOT . '/views/inc/header.php'; ?>
 
-<style>
-    .config-card { border: none; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15); }
-    .config-header { background: linear-gradient(135deg, #343a40 0%, #23272b 100%); border-bottom: 3px solid #ffc107; }
-    /* Estilos para mantener el encabezado y columnas fijas si crece mucho */
-    .table-responsive {
-        max-height: 600px;
-        overflow: auto;
-    }
-    .table thead th {
-        position: sticky;
-        top: 0;
-        background-color: #343a40;
-        z-index: 2;
-    }
-    /* El checkbox más grande */
-    .huge-checkbox {
-        transform: scale(1.5);
-        cursor: pointer;
-    }
-</style>
-
 <div class="container-fluid mt-4">
     <?php flash('attendance_message'); ?>
 
@@ -39,21 +18,12 @@
             <div class="mt-2 mt-md-0 d-flex align-items-center flex-wrap" style="gap: 10px;">
                 <!-- Barra de herramientas según modo -->
                 <?php if($data['editMode']): ?>
-                    <form action="<?php echo URLROOT; ?>/schedules/attendance/<?php echo $data['schedule']->id; ?>" method="GET" class="form-inline m-0">
-                        <input type="hidden" name="edit" value="1">
-                        <div class="input-group input-group-sm">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text bg-light border-right-0 text-dark">Fecha a capturar:</span>
-                            </div>
-                            <input type="date" name="fecha" class="form-control" value="<?php echo htmlspecialchars($data['fecha']); ?>" required>
-                            <div class="input-group-append">
-                                <button type="submit" class="btn btn-primary">Fijar Columna</button>
-                            </div>
-                        </div>
-                    </form>
+                    <span class="badge badge-primary py-2 px-3" style="font-size:0.95rem;">
+                        <i class="fa fa-pencil mr-1"></i> Editando: <?php echo date('d/M/Y', strtotime($data['fecha'])); ?>
+                    </span>
                 <?php else: ?>
                     <?php if(!empty($data['all_dates'])) : ?>
-                        <a href="<?php echo URLROOT; ?>/schedules/attendance/<?php echo $data['schedule']->id; ?>?edit=1" class="btn btn-warning btn-sm text-dark font-weight-bold">
+                        <a href="<?php echo URLROOT; ?>/schedules/attendance/<?php echo $data['schedule']->id; ?>?edit=1&fecha=<?php echo date('Y-m-d'); ?>" class="btn btn-warning btn-sm text-dark font-weight-bold">
                             <i class="fa fa-edit"></i> Editar / Nueva Captura
                         </a>
                     <?php endif; ?>
@@ -82,8 +52,8 @@
                     <i class="fa fa-battery-empty fa-4x text-muted mb-3"></i>
                     <h3 class="text-secondary">Sin Registros Previos</h3>
                     <p class="text-muted mb-4">Aún no se ha pasado lista en este grupo.</p>
-                    <a href="<?php echo URLROOT; ?>/schedules/attendance/<?php echo $data['schedule']->id; ?>?edit=1" class="btn btn-success btn-lg">
-                        <i class="fa fa-plus-circle"></i> Iniciar Control de Asistencia Hoy
+                    <a href="<?php echo URLROOT; ?>/schedules/attendance/<?php echo $data['schedule']->id; ?>?edit=1&fecha=<?php echo date('Y-m-d'); ?>" class="btn btn-success btn-lg">
+                        <i class="fa fa-plus-circle"></i> Iniciar Control de Asistencia
                     </a>
                 </div>
 
@@ -94,7 +64,7 @@
                 <input type="hidden" name="fecha" value="<?php echo htmlspecialchars($data['fecha']); ?>">
                 
                 <!-- Barra de búsqueda y filtros -->
-                <div class="bg-light p-3 border-bottom d-flex align-items-center flex-wrap" style="gap:10px;">
+                <div class="bg-light p-3 border-bottom d-flex align-items-center flex-wrap">
                     <div class="input-group input-group-sm flex-grow-1" style="max-width:320px;">
                         <div class="input-group-prepend">
                             <span class="input-group-text bg-white border-right-0">
@@ -120,13 +90,13 @@
                         <button type="button" class="btn btn-outline-secondary sort-btn"
                             data-sort="desc" onclick="cambiarOrden(this, 'desc')"
                             title="Z → A">
-                            Z<i class="fas fa-arrow-up ml-1" style="font-size:0.7rem;"></i>A
+                            Z<i class="fas fa-arrow-up ml-1"></i>A
                         </button>
                     </div>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped table-sm table-bordered mb-0 text-center">
+                <div class="table-attendance-responsive p-0">
+                    <table class="table table-hover table-bordered mb-0 table-sm text-center" style="font-size: 0.95rem;">
                         <thead class="thead-dark">
                             <tr>
                                 <th style="width: 5%;" class="align-middle">#</th>
@@ -147,7 +117,7 @@
                                     
                                     foreach($fechas_mostrar as $fecha_hist) : 
                                         $is_active_column = ($data['editMode'] && $fecha_hist == $data['fecha']);
-                                        $fecha_format = date('d/M', strtotime($fecha_hist));
+                                        $fecha_format = date('d/M/y', strtotime($fecha_hist));
                                 ?>
                                     <th class="align-middle <?php echo $is_active_column ? 'bg-primary border-primary' : ''; ?>" style="min-width: 90px;" title="<?php echo $fecha_hist; ?>">
                                         <?php if($is_active_column): ?>
@@ -204,27 +174,37 @@
                                             <?php if($is_active_column) : ?>
                                                 <!-- CELDA ACTIVA (Editable) -->
                                                 <td class="align-middle bg-light border-primary" style="border-width: 2px !important;">
-                                                    <input type="hidden" name="attendance[<?php echo $student->inscripcion_id; ?>]" value="ausente">
-                                                    
                                                     <?php 
-                                                        $checked = ($estado === 'presente' || $estado === null) ? 'checked' : '';
+                                                        $val = strtolower($estado ?? 'presente');
+                                                        $name = "attendance[".$student->inscripcion_id."]";
                                                     ?>
-                                                    <input type="checkbox" 
-                                                           name="attendance[<?php echo $student->inscripcion_id; ?>]" 
-                                                           value="presente" 
-                                                           class="huge-checkbox text-primary"
-                                                           <?php echo $checked; ?>>
+                                                    <div class="btn-group btn-group-toggle d-flex" data-toggle="buttons">
+                                                        <label class="btn btn-outline-success btn-sm flex-fill <?php echo ($val == 'presente') ? 'active' : ''; ?>" title="Presente">
+                                                            <input type="radio" name="<?php echo $name; ?>" value="Presente" <?php echo ($val == 'presente') ? 'checked' : ''; ?>> P
+                                                        </label>
+                                                        <label class="btn btn-outline-danger btn-sm flex-fill <?php echo ($val == 'falta') ? 'active' : ''; ?>" title="Falta">
+                                                            <input type="radio" name="<?php echo $name; ?>" value="Falta" <?php echo ($val == 'falta') ? 'checked' : ''; ?>> F
+                                                        </label>
+                                                        <label class="btn btn-outline-warning btn-sm flex-fill <?php echo ($val == 'retardo') ? 'active' : ''; ?>" title="Retardo">
+                                                            <input type="radio" name="<?php echo $name; ?>" value="Retardo" <?php echo ($val == 'retardo') ? 'checked' : ''; ?>> R
+                                                        </label>
+                                                        <label class="btn btn-outline-info btn-sm flex-fill <?php echo ($val == 'justificado') ? 'active' : ''; ?>" title="Justificado">
+                                                            <input type="radio" name="<?php echo $name; ?>" value="Justificado" <?php echo ($val == 'justificado') ? 'checked' : ''; ?>> J
+                                                        </label>
+                                                    </div>
                                                 </td>
                                             <?php else : ?>
                                                 <!-- CELDA HISTÓRICA (Solo lectura) -->
                                                 <td class="align-middle">
-                                                    <?php if($estado == 'presente'): ?>
-                                                        <i class="fa fa-check text-success" title="Presente"></i>
-                                                    <?php elseif($estado == 'ausente'): ?>
+                                                    <?php if(strtolower($estado) == 'presente'): ?>
+                                                        <span class="badge badge-success" title="Presente">P</span>
+                                                    <?php elseif(strtolower($estado) == 'falta' || strtolower($estado) == 'ausente'): ?>
                                                         <!-- Si se marcó como ausente explícitamente -->
-                                                        <i class="fa fa-times text-danger" title="Ausente"></i>
-                                                    <?php elseif($estado == 'retardo'): ?>
-                                                        <i class="fa fa-clock-o text-warning" title="Retardo"></i>
+                                                        <span class="badge badge-danger" title="Falta">F</span>
+                                                    <?php elseif(strtolower($estado) == 'retardo'): ?>
+                                                        <span class="badge badge-warning" title="Retardo">R</span>
+                                                    <?php elseif(strtolower($estado) == 'justificado'): ?>
+                                                        <span class="badge badge-info" title="Justificado">J</span>
                                                     <?php else: ?>
                                                         <!-- Si no hay registro para este alumno puntual ese día -->
                                                         <span class="text-muted">-</span>
@@ -282,8 +262,6 @@
     </div>
 </div>
 
-<?php require APPROOT . '/views/inc/footer.php'; ?>
-
 <!-- Formulario Oculto para Eliminar Columna de Asistencia -->
 <form id="delete-form" action="<?php echo URLROOT; ?>/schedules/deleteAttendanceDate/<?php echo $data['schedule']->id; ?>" method="POST" style="display: none;">
     <input type="hidden" name="fecha" id="delete-fecha-input">
@@ -292,67 +270,4 @@
 <!-- SWEETALERT PARA CONFIRMACIÓN ELEGANTE -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<script>
-// --- BORRADO DE COLUMNAS ---
-function confirmarEliminacion(fecha, fechaF) {
-    Swal.fire({
-        title: '¿Estás seguro?',
-        text: "Vas a eliminar permanentemente el pase de lista del " + fechaF + ".",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fa fa-trash"></i> Sí, eliminar columna',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            document.getElementById('delete-fecha-input').value = fecha;
-            document.getElementById('delete-form').submit();
-        }
-    });
-}
-
-// --- FILTRO Y ORDENAMIENTO DE ALUMNOS ---
-let sortOrder = 'default';
-
-function cambiarOrden(btn, orden) {
-    sortOrder = orden;
-    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    filtrarYOrdenar();
-}
-
-function filtrarYOrdenar() {
-    const query = (document.getElementById('alumnoSearch') ? document.getElementById('alumnoSearch').value : '').toLowerCase().trim();
-    const tbody = document.querySelector('table tbody');
-    if (!tbody) return;
-    
-    // Convertir Nodelist a un array para manipular
-    const items = Array.from(tbody.querySelectorAll('tr.student-item'));
-    if (items.length === 0) return;
-
-    // 1. Filtrar visibilidad
-    items.forEach(item => {
-        const nombre = item.dataset.name || '';
-        if (!query || nombre.includes(query)) {
-            item.style.display = ''; // Mostrar
-        } else {
-            item.style.display = 'none'; // Ocultar
-        }
-    });
-
-    // 2. Ordenar Nodos HTML
-    const visiblesYListos = [...items]; 
-    if (sortOrder === 'asc') {
-        visiblesYListos.sort((a, b) => (a.dataset.name).localeCompare(b.dataset.name, 'es'));
-    } else if (sortOrder === 'desc') {
-        visiblesYListos.sort((a, b) => (b.dataset.name).localeCompare(a.dataset.name, 'es'));
-    } else {
-        // default: restaurar orden original por su atributo data-index original
-        visiblesYListos.sort((a, b) => parseInt(a.dataset.index) - parseInt(b.dataset.index));
-    }
-
-    // Volver a insertar en el DOM en el orden correcto
-    visiblesYListos.forEach(item => tbody.appendChild(item));
-}
-</script>
+<?php require APPROOT . '/views/inc/footer.php'; ?>

@@ -2,96 +2,86 @@
 
 class Teachers extends Controller
 {
-
     private $teachersModel;
 
     public function __construct()
     {
+        // Require login
+        if (!isset($_SESSION['user_id'])) {
+            redirect('users/login');
+        }
         $this->teachersModel = $this->model("Teacher");
     }
 
-    public function index()
+    public function complete_profile()
     {
-        $teachers = $this->teachersModel->getAllTeachers();
-        $data = [
-            'teachers' => $teachers
-        ];
+        // Solo para maestros
+        if ($_SESSION['user_role'] != 'maestro') {
+            redirect('pages/index');
+        }
 
-        $this->view("teachers/index", $data);
-    }
-    
-    public function add()
-    {
+        // Si ya tiene perfil, redirigirlo
+        if ($this->teachersModel->getTeacherByUserId($_SESSION['user_id'])) {
+            redirect('schedules/index');
+        }
+
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $name = $_POST['name'];
-            $lastName1 = $_POST['lastName1'];
-            $lastName2 = $_POST['lastName2'];
-            $curp = $_POST['curp'];
-            $rfc = $_POST['rfc'];
-            $clave = $_POST['clave'];
-            if ($this->teachersModel->addTeacher( $name, $lastName1, $lastName2, $curp, $rfc, $clave)) {
-                flash('register_success', 'Docente agregado');
-                header('Location: ' . URLROOT . '/teachers');
-                exit();
-            }
-        }
-        $this->view('teachers/add');
-    }
-
-    public function edit($id)
-    {
-        $teacher = $this->teachersModel->getTeacherById($id);
-
-        if ($teacher) {
-            if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-                $name = $_POST['name'];
-                $lastName1 = $_POST['lastName1'];
-                $lastName2 = $_POST['lastName2'];
-                $curp = $_POST['curp'];
-                $rfc = $_POST['rfc'];
-                $clave = $_POST['clave'];
-
-                if ($this->teachersModel->updateTeacher($id,$name, $lastName1, $lastName2, $curp, $rfc, $clave)) {
-                    flash('edit_success', 'Docente actualizado');
-                    header('Location: ' . URLROOT . '/teachers');
-                    exit();
-                }
-            } else {
-                $data = [
-                    'id' => $id,
-                    'teacher' => $teacher,
-                    'name' => $teacher->name,
-                    'lastName1' => $teacher->lastName1,
-                    'lastName2' => $teacher->lastName2,
-                    'curp' => $teacher->curp,
-                    'rfc' => $teacher->rfc,
-                    'clave' => $teacher->clave
-                ];
-                $this->view('teachers/edit', $data);
-            }
-        }
-    }
-
-    public function delete($id)
-    {
-        if ($this->teachersModel->deleteTeacher($id)) {
-            header('Location: ' . URLROOT . '/teachers');
-            exit();
-        } else {
-        }
-    }
-
-    public function filter()
-    {
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $filter = $_POST['filter'];
-            $filteredTeachers = $this->teachersModel->filterTeachers($filter);
+            // sanitize
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
 
             $data = [
-                'filteredTeachers' => $filteredTeachers
+                'name'      => htmlspecialchars(trim($_POST['name'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'lastName1' => htmlspecialchars(trim($_POST['lastName1'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'lastName2' => htmlspecialchars(trim($_POST['lastName2'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'curp'      => htmlspecialchars(trim($_POST['curp'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'rfc'       => htmlspecialchars(trim($_POST['rfc'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'clave'     => htmlspecialchars(trim($_POST['clave'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'error'     => ''
             ];
-            $this->view('teachers/filter', $data);
+
+            if (empty($data['name']) || empty($data['lastName1'])) {
+                $data['error'] = 'El nombre y el primer apellido son obligatorios.';
+            }
+
+            // Comprobar Duplicados
+            if (empty($data['error'])) {
+                $duplicados = $this->teachersModel->checkDuplicates($data['curp'], $data['rfc'], $data['clave']);
+                if (!empty($duplicados)) {
+                    $camposDuplicados = implode(', ', $duplicados);
+                    $data['error'] = 'Los siguientes datos ya están registrados por otro docente: ' . $camposDuplicados;
+                }
+            }
+
+            if (empty($data['error'])) {
+                if ($this->teachersModel->addTeacher(
+                    $data['name'], 
+                    $data['lastName1'], 
+                    $data['lastName2'], 
+                    empty($data['curp']) ? null : strtoupper($data['curp']),
+                    empty($data['rfc']) ? null : strtoupper($data['rfc']),
+                    empty($data['clave']) ? null : strtoupper($data['clave']),
+                    $_SESSION['user_id']
+                )) {
+                    flash('register_success', 'Perfil completado exitosamente.');
+                    redirect('schedules/index');
+                } else {
+                    $data['error'] = 'Error al guardar el perfil.';
+                }
+            }
+            
+            $this->view('teachers/complete_profile', $data);
+
         } else {
+            $data = [
+                'name'      => $_SESSION['user_name'] ?? '',
+                'lastName1' => '',
+                'lastName2' => '',
+                'curp'      => '',
+                'rfc'       => '',
+                'clave'     => '',
+                'error'     => ''
+            ];
+            $this->view('teachers/complete_profile', $data);
         }
     }
 }

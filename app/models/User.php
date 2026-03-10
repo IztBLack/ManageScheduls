@@ -8,20 +8,30 @@ class User {
 
     // Add User / Register
     public function register($data) {
-        // Prepare Query
-        $this->db->query('INSERT INTO users (name, email, password) VALUES (:name, :email, :password)');
+        // Preparar Query
+        $sql = 'INSERT INTO users (name, email, password, rol';
+        $values = 'VALUES (:name, :email, :password, :rol';
+        
+        if (isset($data['must_change_password'])) {
+            $sql .= ', must_change_password';
+            $values .= ', :must_change_password';
+        }
+        $sql .= ') ' . $values . ')';
+        
+        $this->db->query($sql);
 
         // Bind Values
         $this->db->bind(':name', $data['name']);
         $this->db->bind(':email', $data['email']);
         $this->db->bind(':password', $data['password']);
+        $this->db->bind(':rol', $data['rol'] ?? 'alumno');
+        
+        if (isset($data['must_change_password'])) {
+            $this->db->bind(':must_change_password', $data['must_change_password']);
+        }
 
         // Execute
-        if ($this->db->execute()) {
-            return true;
-        } else {
-            return false;
-        }
+        return $this->db->execute();
     }
 
     // Find User By Email

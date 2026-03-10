@@ -6,6 +6,7 @@ class Schedules extends Controller
     private $scheduleModel;
     private $studentModel;
     private $userModel;
+    private $attendanceModel;
 
     public function __construct()
     {
@@ -25,7 +26,7 @@ class Schedules extends Controller
     // =========================================================
     public function index()
     {
-        $schedules = $this->scheduleModel->getSchedulesWithNames();
+        $schedules = $this->scheduleModel->getSchedulesWithNames($_SESSION['user_id']);
         $data = ['schedules' => $schedules];
         $this->view('schedules/index', $data);
     }
@@ -47,14 +48,19 @@ class Schedules extends Controller
                 'aula'         => $sanitize($_POST['salon']         ?? ''),
                 'periodo'      => $sanitize($_POST['periodo']       ?? ''),
                 'especialidad' => $sanitize($_POST['especialidad']  ?? ''),
-                'units'        => $_POST['units'] ?? [],
-                'subjects'     => $this->scheduleModel->getSubjects(),
+                'subjects'     => $this->scheduleModel->getSubjects($_SESSION['user_id']),
                 'error'        => '',
                 'warning'      => '',
             ];
 
             if (empty($data['subject_id']) || empty($data['grupo'])) {
                 $data['error'] = 'La materia y el identificador del grupo son obligatorios.';
+                $this->view('schedules/add', $data);
+                return;
+            }
+
+            if (!empty($data['turno']) && !preg_match('/^([01]?[0-9]|2[0-3])-([01]?[0-9]|2[0-3])$/', $data['turno'])) {
+                $data['error'] = 'El campo de Hora debe estar en formato 24h exacto, por ejemplo: 14-15';
                 $this->view('schedules/add', $data);
                 return;
             }
@@ -66,37 +72,7 @@ class Schedules extends Controller
                 return;
             }
 
-            if (!empty($data['units'])) {
-                foreach ($data['units'] as $index => $unit) {
-                    $totalWeight  = 0;
-                    $hasActivities = false;
-
-                    foreach ($unit['activities'] as $act) {
-                        if (!empty(trim($act['name'] ?? ''))) {
-                            $hasActivities = true;
-                            $totalWeight  += intval($act['weight'] ?? 0);
-                        }
-                    }
-
-                    if (!$hasActivities) {
-                        $data['error'] = "La Unidad $index no tiene actividades con nombre.";
-                        $this->view('schedules/add', $data);
-                        return;
-                    }
-
-                    if ($totalWeight > 100) {
-                        $data['error'] = "La Unidad $index supera el 100% de ponderación (Actual: {$totalWeight}%).";
-                        $this->view('schedules/add', $data);
-                        return;
-                    }
-
-                    if ($totalWeight != 100) {
-                        $data['warning'] = "Advertencia: una o más unidades no suman 100%. Puedes ajustar los pesos desde la edición del grupo.";
-                    }
-                }
-            }
-
-            if ($this->scheduleModel->addFullStructure($data)) {
+            if ($this->scheduleModel->addGroup($data)) {
                 flash('schedule_message', '¡Grupo creado con éxito!');
                 redirect('schedules/index');
             } else {
@@ -106,7 +82,7 @@ class Schedules extends Controller
 
         } else {
             $data = [
-                'subjects' => $this->scheduleModel->getSubjects(),
+                'subjects' => $this->scheduleModel->getSubjects($_SESSION['user_id']),
                 'error'    => '',
                 'warning'  => '',
             ];
@@ -137,6 +113,7 @@ class Schedules extends Controller
     private function handleEditPost($scheduleId)
     {
         $action = $_POST['action'] ?? '';
+        $sanitize = fn($v) => htmlspecialchars(trim($v ?? ''), ENT_QUOTES, 'UTF-8');
 
         switch ($action) {
 
@@ -144,7 +121,7 @@ class Schedules extends Controller
             case 'add_unit':
                 $unitData = [
                     'schedule_id' => $scheduleId,
-                    'nombre'      => trim($_POST['nombre'] ?? 'Nueva Unidad'),
+                    'nombre'      => $sanitize($_POST['nombre'] ?? 'Nueva Unidad'),
                     'orden'       => intval($_POST['orden'] ?? $this->scheduleModel->getNextUnitOrder($scheduleId))
                 ];
                 if ($this->scheduleModel->addUnit($unitData)) {
@@ -156,7 +133,7 @@ class Schedules extends Controller
 
             case 'update_unit':
                 if (isset($_POST['unit_id'])) {
-                    $nombre = trim($_POST['nombre'] ?? '');
+                    $nombre = $sanitize($_POST['nombre'] ?? '');
                     if (empty($nombre)) {
                         flash('edit_error', 'El nombre de la unidad no puede estar vacío', 'alert alert-danger');
                         break;
@@ -188,7 +165,7 @@ class Schedules extends Controller
             // ── ACTIVIDADES ───────────────────────────────────
             case 'add_activity':
                 if (isset($_POST['unidad_id'])) {
-                    $nombre = trim($_POST['nombre'] ?? '');
+                    $nombre = $sanitize($_POST['nombre'] ?? '');
                     if (empty($nombre)) {
                         flash('edit_error', 'El nombre de la actividad es obligatorio', 'alert alert-danger');
                         break;
@@ -198,7 +175,7 @@ class Schedules extends Controller
                         'unidad_id'    => intval($_POST['unidad_id']),
                         'nombre'       => $nombre,
                         'ponderacion'  => intval($_POST['ponderacion'] ?? 0),
-                        'fecha_entrega'=> !empty($_POST['fecha_entrega']) ? $_POST['fecha_entrega'] : null
+                        'fecha_entrega'=> !empty($_POST['fecha_entrega']) ? $sanitize($_POST['fecha_entrega']) : null
                     ];
                     if ($this->scheduleModel->addActivity($activityData)) {
                         flash('edit_message', 'Actividad agregada');
@@ -210,7 +187,7 @@ class Schedules extends Controller
 
             case 'update_activity':
                 if (isset($_POST['activity_id'])) {
-                    $nombre = trim($_POST['nombre'] ?? '');
+                    $nombre = $sanitize($_POST['nombre'] ?? '');
                     if (empty($nombre)) {
                         flash('edit_error', 'El nombre de la actividad no puede estar vacío', 'alert alert-danger');
                         break;
@@ -220,7 +197,7 @@ class Schedules extends Controller
                         'id'           => intval($_POST['activity_id']),
                         'nombre'       => $nombre,
                         'ponderacion'  => intval($_POST['ponderacion'] ?? 0),
-                        'fecha_entrega'=> !empty($_POST['fecha_entrega']) ? $_POST['fecha_entrega'] : null
+                        'fecha_entrega'=> !empty($_POST['fecha_entrega']) ? $sanitize($_POST['fecha_entrega']) : null
                     ];
                     if ($this->scheduleModel->updateActivity($activityData)) {
                         flash('edit_message', 'Actividad actualizada');
@@ -246,9 +223,9 @@ class Schedules extends Controller
                     foreach ($_POST['activities'] as $activityId => $d) {
                         $activityData = [
                             'id'           => $activityId,
-                            'nombre'       => trim($d['nombre']),
-                            'ponderacion'  => intval($d['ponderacion']),
-                            'fecha_entrega'=> !empty($d['fecha_entrega']) ? $d['fecha_entrega'] : null
+                            'nombre'       => $sanitize($d['nombre'] ?? ''),
+                            'ponderacion'  => intval($d['ponderacion'] ?? 0),
+                            'fecha_entrega'=> !empty($d['fecha_entrega']) ? $sanitize($d['fecha_entrega']) : null
                         ];
                         if (!$this->scheduleModel->updateActivity($activityData)) $success = false;
                     }
@@ -261,9 +238,9 @@ class Schedules extends Controller
             // ── ALUMNOS ───────────────────────────────────────
             case 'add_student':
                 if (isset($_POST['name'])) {
-                    $nombre     = trim($_POST['name'] ?? '');
-                    $matricula  = trim($_POST['matricula'] ?? '');
-                    $inputEmail = trim($_POST['email'] ?? '');
+                    $nombre     = $sanitize($_POST['name'] ?? '');
+                    $matricula  = $sanitize($_POST['matricula'] ?? '');
+                    $inputEmail = $sanitize($_POST['email'] ?? '');
 
                     if (empty($nombre)) {
                         flash('edit_error', 'El nombre del alumno es obligatorio', 'alert alert-danger');
@@ -447,6 +424,7 @@ class Schedules extends Controller
             case 'get_unit_details':      $this->ajaxGetUnitDetails();      break;
             case 'validate_weights':      $this->ajaxValidateWeights();     break;
             case 'search_students':       $this->ajaxSearchStudents();      break;
+            case 'add_subject':           $this->ajaxAddSubject();          break;
             default: echo json_encode(['success' => false, 'error' => 'Acción no válida']);
         }
     }
@@ -526,6 +504,41 @@ class Schedules extends Controller
         echo json_encode(['success' => true, 'data' => $students]);
     }
 
+    private function ajaxAddSubject()
+    {
+        ob_clean();
+        header('Content-Type: application/json');
+
+        if (!isset($_POST['subject_name'])) {
+            echo json_encode(['success' => false, 'error' => 'Faltan datos']);
+            return;
+        }
+
+        $subjectModel = $this->model('Subject');
+        $teacherModel = $this->model('Teacher');
+        
+        $teacher = $teacherModel->getTeacherByUserId($_SESSION['user_id']);
+        $teacher_id = $teacher ? $teacher->id : null;
+        
+        $safe_name = htmlspecialchars(trim($_POST['subject_name']), ENT_QUOTES, 'UTF-8');
+        if (empty($safe_name) || is_numeric($safe_name)) {
+            echo json_encode(['success' => false, 'error' => 'Nombre de materia inválido']);
+            return;
+        }
+
+        $id = $subjectModel->addSubject($safe_name, $teacher_id);
+
+        if ($id) {
+            echo json_encode([
+                'success' => true, 
+                'id' => $id, 
+                'subject_name' => $safe_name
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Error al guardar la materia']);
+        }
+    }
+
     // =========================================================
     // GRADES
     // =========================================================
@@ -534,21 +547,29 @@ class Schedules extends Controller
         $editMode = isset($_GET['edit']) && $_GET['edit'] == 1;
 
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            if (isset($_POST['calif'])) {
+            if (isset($_POST['calif']) && is_array($_POST['calif'])) {
                 foreach ($_POST['calif'] as $inscripcion_id => $actividades) {
+                    $ins_id = intval($inscripcion_id);
                     foreach ($actividades as $actividadId => $nota) {
-                        if ($nota === '' || $nota === null) continue; // saltar vacíos
-                        $this->studentModel->saveGrade($inscripcion_id, $actividadId, round((float)$nota));
+                        if ($nota === '' || $nota === null) continue;
+                        $notaFloat = round((float)$nota, 2);
+                        if($notaFloat >= 0 && $notaFloat <= 100) {
+                            $this->studentModel->saveGrade($ins_id, intval($actividadId), $notaFloat);
+                        }
                     }
                 }
                 flash('grade_message', 'Calificaciones registradas');
             }
 
-            if (isset($_POST['bonus'])) {
+            if (isset($_POST['bonus']) && is_array($_POST['bonus'])) {
                 foreach ($_POST['bonus'] as $inscripcion_id => $unidades) {
+                    $ins_id = intval($inscripcion_id);
                     foreach ($unidades as $unidad_id => $puntos) {
-                        if ($puntos === '' || $puntos === null) continue; // saltar vacíos
-                        $this->studentModel->saveBonus($inscripcion_id, $unidad_id, round((float)$puntos));
+                        if ($puntos === '' || $puntos === null) continue;
+                        $ptsFloat = round((float)$puntos, 2);
+                        if($ptsFloat >= 0 && $ptsFloat <= 100) {
+                            $this->studentModel->saveBonus($ins_id, intval($unidad_id), $ptsFloat);
+                        }
                     }
                 }
             }
@@ -655,7 +676,7 @@ class Schedules extends Controller
     // PASE DE LISTA
     // =========================================================
     public function attendance($schedule_id) {
-        $fecha = isset($_GET['fecha']) ? $_GET['fecha'] : date('Y-m-d');
+        $fecha = isset($_GET['fecha']) ? htmlspecialchars(trim($_GET['fecha']), ENT_QUOTES, 'UTF-8') : date('Y-m-d');
         
         $schedule = $this->scheduleModel->getScheduleById($schedule_id);
 
@@ -664,12 +685,16 @@ class Schedules extends Controller
         }
 
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
-            $fecha_post = $_POST['fecha'];
+            $fecha_post = htmlspecialchars(trim($_POST['fecha'] ?? date('Y-m-d')), ENT_QUOTES, 'UTF-8');
             
-            if(isset($_POST['attendance'])) {
+            if(isset($_POST['attendance']) && is_array($_POST['attendance'])) {
+                $allowedStatus = ['Presente', 'Falta', 'Retardo', 'Justificado'];
+                
                 foreach($_POST['attendance'] as $inscripcion_id => $estado) {
-                    $this->attendanceModel->saveAttendance($inscripcion_id, $fecha_post, $estado);
+                    $est = trim($estado);
+                    if(in_array($est, $allowedStatus)) {
+                        $this->attendanceModel->saveAttendance(intval($inscripcion_id), $fecha_post, $est);
+                    }
                 }
                 flash('attendance_message', 'Lista de asistencia guardada correctamente para el ' . $fecha_post);
             }

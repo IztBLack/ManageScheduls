@@ -16,7 +16,8 @@
                         <input type="password" 
                                name="password" 
                                class="form-control form-control-lg <?php echo (!empty($data['password_err'])) ? 'is-invalid' : ''; ?>" 
-                               value="<?php echo $data['password']; ?>">
+                               value="<?php echo $data['password']; ?>"
+                               placeholder="Mínimo 8 caracteres, números y letras">
                         <span class="invalid-feedback"><?php echo $data['password_err']; ?></span>
                     </div>
 
